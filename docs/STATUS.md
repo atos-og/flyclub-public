@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 4 code complete — sequential monitor runner with persisted and dry-run modes.
+Phase 4 integrated — sequential monitor runner with persisted and dry-run modes.
 
 ## Done
 
@@ -40,14 +40,15 @@ Phase 4 code complete — sequential monitor runner with persisted and dry-run m
 - Aborted persisted cycles attempt a final failure update while preserving the original error.
 - `--monitor --dry-run` exercises all provider calls without requiring or writing a database.
 - Monitor summaries omit route endpoints, dates, prices, and booking URLs.
+- PR #3 was validated and squash-merged into `main`.
 
 ## In progress
 
-- Phase 4 changes are on `agent/monitor-runner`, pending publication and review.
+- Live persistence validation is waiting for a user-provisioned Supabase project and a locally
+  configured `DATABASE_URL`.
 
 ## Next
 
-- Publish and integrate Phase 4.
 - Provision a Supabase project, apply the initial migration, and run a live persistence smoke test.
 - Add provider-health state updates after the live persistence path is verified.
 
@@ -83,3 +84,5 @@ Manual checks:
 - `flyclub-db-migrate` without `DATABASE_URL`: failed safely without exposing a value.
 - Migration discovery found the bundled `001_initial.sql`; no live PostgreSQL engine was available
   for an integration test.
+- `flyclub --config config/routes.example.yaml --monitor` without `DATABASE_URL`: failed safely
+  before any provider call.
