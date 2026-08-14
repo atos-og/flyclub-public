@@ -103,7 +103,19 @@ flyclub --config config/routes.example.yaml --search-route from_bh:LIS
 ```
 
 This command performs real network requests through the unofficial provider and may reveal trip
-details in local output. There is no full monitor command yet.
+details in local output.
+
+Run every configured route sequentially without persistence or route details in the summary:
+
+```bash
+flyclub --monitor --dry-run
+```
+
+Run the persisted monitor after migrations and secure `DATABASE_URL` configuration:
+
+```bash
+flyclub --monitor
+```
 
 Apply pending PostgreSQL migrations after `DATABASE_URL` is supplied securely:
 

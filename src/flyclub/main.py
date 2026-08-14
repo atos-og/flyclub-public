@@ -6,9 +6,10 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from flyclub.config import ConfigError, load_config
+from flyclub.config import ConfigError, FlyClubConfig, load_config
 from flyclub.models import RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.route_planner import config_fingerprint, plan_routes
+from flyclub.storage.postgres import RunStatus, StorageError
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -19,10 +20,21 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show configured route endpoints (avoid in shared logs)",
     )
-    parser.add_argument(
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument(
         "--search-route",
         metavar="ORIGIN_GROUP:DESTINATION",
         help="Run one explicit live provider search (may reveal trip data in local output)",
+    )
+    action.add_argument(
+        "--monitor",
+        action="store_true",
+        help="Search every configured route sequentially without printing route details",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="With --monitor, run provider searches without PostgreSQL persistence",
     )
     return parser
 
@@ -64,8 +76,39 @@ def _print_search_outcome(route: RouteDefinition, outcome: SearchOutcome) -> Non
             print(f"   {option.google_flights_url}")
 
 
+def _run_all_routes(
+    config: FlyClubConfig, routes: tuple[RouteDefinition, ...], *, dry_run: bool
+) -> int:
+    from flyclub.monitor import run_monitor
+    from flyclub.providers.google_flights import GoogleFlightsProvider
+    from flyclub.storage.postgres import PostgresRepository
+
+    provider = GoogleFlightsProvider(
+        retry_attempts=config.monitor.retry_attempts,
+        retry_base_delay_seconds=config.monitor.retry_base_delay_seconds,
+    )
+    repository = None if dry_run else PostgresRepository.from_env()
+    summary = run_monitor(
+        routes=routes,
+        config_fingerprint=config_fingerprint(config),
+        provider=provider,
+        max_results=config.monitor.max_results_per_route,
+        repository=repository,
+    )
+    mode = "dry-run" if dry_run else "persisted"
+    print(f"Fly Club monitor finished: {summary.status.value} ({mode}).")
+    print(f"Planned routes: {summary.planned_routes}")
+    print(f"Successful routes: {summary.successful_routes}")
+    print(f"Empty routes: {summary.empty_routes}")
+    print(f"Failed routes: {summary.failed_routes}")
+    return 0 if summary.status is RunStatus.SUCCESS else 1
+
+
 def cli(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    if args.dry_run and not args.monitor:
+        print("Configuration error: --dry-run requires --monitor", file=sys.stderr)
+        return 2
     try:
         config = load_config(args.config)
     except ConfigError as error:
@@ -73,6 +116,13 @@ def cli(argv: Sequence[str] | None = None) -> int:
         return 2
 
     routes = plan_routes(config)
+
+    if args.monitor:
+        try:
+            return _run_all_routes(config, routes, dry_run=args.dry_run)
+        except StorageError as error:
+            print(f"Storage error: {error}", file=sys.stderr)
+            return 1
 
     if args.search_route:
         try:

@@ -1,0 +1,183 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from pathlib import Path
+from uuid import UUID, uuid4
+
+from flyclub.config import load_config
+from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
+from flyclub.monitor import MonitorSummary, run_monitor
+from flyclub.route_planner import config_fingerprint, plan_routes
+from flyclub.storage.postgres import RunStatus
+
+EXAMPLE_PATH = Path("config/routes.example.yaml")
+
+
+class FakeProvider:
+    name = "fake_flights"
+
+    def __init__(self, outcomes: list[SearchOutcome | Exception]) -> None:
+        self._outcomes = iter(outcomes)
+        self.route_keys: list[str] = []
+
+    def search(self, route: RouteDefinition, *, max_results: int) -> SearchOutcome:
+        assert max_results == 5
+        self.route_keys.append(route.key)
+        result = next(self._outcomes)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
+class FakeRepository:
+    def __init__(self, *, fail_check: bool = False, fail_finish: bool = False) -> None:
+        self.fail_check = fail_check
+        self.fail_finish = fail_finish
+        self.started: list[dict[str, object]] = []
+        self.checks: list[dict[str, object]] = []
+        self.finished: list[dict[str, object]] = []
+
+    def start_run(self, **kwargs: object) -> UUID:
+        self.started.append(kwargs)
+        return kwargs["run_id"]  # type: ignore[return-value]
+
+    def record_route_check(self, **kwargs: object) -> UUID:
+        self.checks.append(kwargs)
+        if self.fail_check:
+            raise RuntimeError("database write failed")
+        return uuid4()
+
+    def finish_run(self, **kwargs: object) -> None:
+        self.finished.append(kwargs)
+        if self.fail_finish:
+            raise RuntimeError("database finish failed")
+
+
+def _routes(count: int = 3) -> tuple[RouteDefinition, ...]:
+    return plan_routes(load_config(EXAMPLE_PATH))[:count]
+
+
+def _success(price: str = "3000.00") -> SearchOutcome:
+    return SearchOutcome(
+        provider="fake_flights",
+        status=SearchStatus.SUCCESS,
+        options=(FlightOption(price=Decimal(price), currency="BRL", legs=()),),
+    )
+
+
+def _empty() -> SearchOutcome:
+    return SearchOutcome(provider="fake_flights", status=SearchStatus.EMPTY)
+
+
+def _failure() -> SearchOutcome:
+    return SearchOutcome(
+        provider="fake_flights",
+        status=SearchStatus.TEMPORARY_FAILURE,
+        error_code="TIMEOUT",
+        error_message="Provider request failed",
+    )
+
+
+def _run(
+    outcomes: list[SearchOutcome | Exception],
+    *,
+    repository: FakeRepository | None = None,
+) -> tuple[MonitorSummary, FakeProvider]:
+    routes = _routes(len(outcomes))
+    provider = FakeProvider(outcomes)
+    config = load_config(EXAMPLE_PATH)
+    summary = run_monitor(
+        routes=routes,
+        config_fingerprint=config_fingerprint(config),
+        provider=provider,
+        max_results=5,
+        repository=repository,
+    )
+    return summary, provider
+
+
+def test_monitor_queries_routes_sequentially_and_persists_every_outcome() -> None:
+    repository = FakeRepository()
+    routes = _routes()
+
+    summary, provider = _run([_success(), _empty(), _success("3100")], repository=repository)
+
+    assert provider.route_keys == [route.key for route in routes]
+    assert len(repository.started) == 1
+    assert len(repository.checks) == 3
+    assert len(repository.finished) == 1
+    run_id = repository.started[0]["run_id"]
+    assert all(check["run_id"] == run_id for check in repository.checks)
+    assert repository.finished[0]["run_id"] == run_id
+    assert summary.status is RunStatus.SUCCESS
+    assert summary.successful_routes == 2
+    assert summary.empty_routes == 1
+    assert summary.failed_routes == 0
+    assert summary.persisted is True
+
+
+def test_monitor_marks_mixed_provider_results_partial() -> None:
+    repository = FakeRepository()
+
+    summary, _ = _run([_success(), _failure(), _empty()], repository=repository)
+
+    assert summary.status is RunStatus.PARTIAL
+    assert summary.failed_routes == 1
+    assert repository.finished[0]["status"] is RunStatus.PARTIAL
+    assert repository.finished[0]["error_code"] == "ROUTE_FAILURES"
+
+
+def test_monitor_marks_all_failed_results_as_failure() -> None:
+    summary, _ = _run([_failure(), _failure()])
+
+    assert summary.status is RunStatus.FAILURE
+    assert summary.successful_routes == 0
+    assert summary.empty_routes == 0
+    assert summary.failed_routes == 2
+
+
+def test_monitor_converts_unexpected_provider_exception_and_continues() -> None:
+    repository = FakeRepository()
+
+    summary, provider = _run([RuntimeError("private detail"), _success()], repository=repository)
+
+    assert len(provider.route_keys) == 2
+    assert summary.status is RunStatus.PARTIAL
+    first_outcome = repository.checks[0]["outcome"]
+    assert isinstance(first_outcome, SearchOutcome)
+    assert first_outcome.status is SearchStatus.TEMPORARY_FAILURE
+    assert first_outcome.error_code == "RuntimeError"
+    assert "private detail" not in (first_outcome.error_message or "")
+
+
+def test_dry_run_searches_without_repository() -> None:
+    summary, _ = _run([_success(), _empty()], repository=None)
+
+    assert summary.status is RunStatus.SUCCESS
+    assert summary.persisted is False
+
+
+def test_monitor_attempts_to_finish_failed_run_after_persistence_error() -> None:
+    repository = FakeRepository(fail_check=True)
+
+    try:
+        _run([_success(), _success()], repository=repository)
+    except RuntimeError as error:
+        assert str(error) == "database write failed"
+    else:
+        raise AssertionError("The persistence error should propagate")
+
+    assert repository.finished[0]["status"] is RunStatus.FAILURE
+    assert repository.finished[0]["failed_routes"] == 2
+    assert repository.finished[0]["error_code"] == "MONITOR_ABORTED"
+
+
+def test_monitor_preserves_original_error_when_failure_update_also_fails() -> None:
+    repository = FakeRepository(fail_check=True, fail_finish=True)
+
+    try:
+        _run([_success()], repository=repository)
+    except RuntimeError as error:
+        assert str(error) == "database write failed"
+    else:
+        raise AssertionError("The original persistence error should propagate")

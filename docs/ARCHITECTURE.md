@@ -3,7 +3,8 @@
 ## Current system
 
 The implemented system validates configuration, expands it into provider-neutral routes, can
-perform one explicit Google Flights search, and has an independent PostgreSQL persistence layer:
+perform one explicit Google Flights search, and can orchestrate a complete sequential collection
+cycle with optional PostgreSQL persistence:
 
 ```text
 routes YAML or FLYCLUB_ROUTES_YAML
@@ -14,11 +15,11 @@ routes YAML or FLYCLUB_ROUTES_YAML
                   ↓
      provider-neutral RouteDefinition
                   ↓
+          Monitor Runner
+                  ↓
        GoogleFlightsProvider → fli
                   ↓
  provider-neutral SearchOutcome / FlightOption
-
-RouteDefinition + SearchOutcome
                   ↓
        PostgresRepository
                   ↓
@@ -26,8 +27,9 @@ RouteDefinition + SearchOutcome
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
-endpoints only when explicitly requested. A separate explicit option performs one live route
-search. The repository and migration CLI exist, but the search CLI does not persist results yet.
+endpoints only when explicitly requested. One option performs a detailed single-route search. The
+monitor option searches every route sequentially and prints counters only; `--dry-run` omits all
+database writes.
 
 ## Current modules
 
@@ -39,11 +41,14 @@ search. The repository and migration CLI exist, but the search CLI does not pers
 - `flyclub.providers.base`: defines the `FlightProvider` protocol.
 - `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
   classifies errors, normalizes results, and validates deep links.
+- `flyclub.monitor`: runs provider searches sequentially, records every outcome, derives the run
+  status, and attempts to close aborted persisted runs as failures.
 - `flyclub.storage.migrations`: discovers checksum-protected SQL migrations, serializes migration
   execution with an advisory lock, and reads its connection only from `DATABASE_URL`.
 - `flyclub.storage.postgres`: persists monitor runs, comparable routes, route checks, and normalized
   snapshots atomically and idempotently; database errors are sanitized.
-- `flyclub.main`: exposes configuration validation and explicit single-route search.
+- `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
+  commands.
 
 ## Component boundaries
 
@@ -54,10 +59,10 @@ search. The repository and migration CLI exist, but the search CLI does not pers
   returning. External provider types must not cross this boundary.
 - `SearchOutcome` keeps empty results distinct from provider and request failures.
 
-## Planned V1 flow
+## V1 flow
 
-The agreed V1 direction is shown below, but components after `FlightProvider` are not implemented
-and must not be treated as operational:
+Collection through PostgreSQL is implemented. Components after persistence remain planned and must
+not be treated as operational:
 
 ```text
 Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlightsProvider / fli

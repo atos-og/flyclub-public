@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 3 code complete — PostgreSQL schema, migrations, and idempotent repository.
+Phase 4 code complete — sequential monitor runner with persisted and dry-run modes.
 
 ## Done
 
@@ -33,21 +33,28 @@ Phase 3 code complete — PostgreSQL schema, migrations, and idempotent reposito
 - Successful checks store the best price separately from ranked normalized itinerary snapshots.
 - Historical best-price queries require and exclude the current route-check ID.
 - Repository database errors are sanitized so connection details are not echoed.
+- PR #2 was validated and squash-merged into `main`.
+- The monitor runner searches configured routes sequentially through `FlightProvider`.
+- Every success, empty result, classified failure, and unexpected adapter failure is accounted for.
+- Persisted runs receive deterministic `SUCCESS`, `PARTIAL`, or `FAILURE` status and counters.
+- Aborted persisted cycles attempt a final failure update while preserving the original error.
+- `--monitor --dry-run` exercises all provider calls without requiring or writing a database.
+- Monitor summaries omit route endpoints, dates, prices, and booking URLs.
 
 ## In progress
 
-- Phase 3 changes are on `agent/postgres-persistence`, pending publication and review.
+- Phase 4 changes are on `agent/monitor-runner`, pending publication and review.
 
 ## Next
 
-- Publish and integrate Phase 3.
-- Build the monitor runner and connect sequential provider searches to persistence.
+- Publish and integrate Phase 4.
 - Provision a Supabase project, apply the initial migration, and run a live persistence smoke test.
+- Add provider-health state updates after the live persistence path is verified.
 
 ## Known issues
 
-- No monitor runner, Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert
-  engine, alert deduplication, or health updater exists yet.
+- No Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert engine, alert
+  deduplication, or provider-health updater exists yet.
 - No live Supabase database has been provisioned or migrated; SQL behavior is currently covered by
   repository and migration-runner unit tests with fakes.
 - The external dead-man switch remains proposed and requires user approval later.
@@ -60,7 +67,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 37 passed, 87% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 47 passed, 90% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.

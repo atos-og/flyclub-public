@@ -6,7 +6,8 @@ send low-noise Telegram alerts.
 
 The project currently validates route configuration, supports an explicit one-route Google
 Flights search, and includes versioned PostgreSQL migrations plus an idempotent persistence
-repository. The provider search is not connected to persistence or scheduled monitoring yet.
+repository. The monitor runner searches all configured routes sequentially, either as a
+safe-output dry run or with PostgreSQL persistence; scheduled execution is not configured yet.
 
 ## Principles
 
@@ -65,6 +66,20 @@ flyclub --config config/routes.example.yaml --search-route from_bh:LIS
 
 This uses the unofficial Google Flights interface, prints trip details locally, and does not store
 or alert anything yet.
+
+To exercise every configured route without storing results, use:
+
+```bash
+flyclub --monitor --dry-run
+```
+
+The summary prints counters only, not route endpoints, dates, prices, or booking URLs. This still
+performs real network requests. After migrations have been applied and `DATABASE_URL` is available,
+omit `--dry-run` to persist the complete monitor cycle:
+
+```bash
+flyclub --monitor
+```
 
 ## PostgreSQL migrations
 
