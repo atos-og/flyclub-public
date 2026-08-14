@@ -1,0 +1,55 @@
+# Public example only. Keep real destinations and dates in config/routes.yaml
+# (ignored by Git) or in the FLYCLUB_ROUTES_YAML GitHub Secret.
+trip:
+  departure_date: "2027-06-10"
+  return_date: "2027-06-20"
+  passengers: 1
+  cabin: ECONOMY
+  currency: BRL
+  max_stops: ANY
+
+origins:
+  from_bh:
+    label: Belo Horizonte
+    role: HOME
+    airports:
+      - CNF
+
+  from_sao_paulo:
+    label: São Paulo
+    role: POSITIONING
+    airports:
+      - GRU
+      - VCP
+      - CGH
+    notice: "Saída de São Paulo — deslocamento BH → SP não incluído."
+
+destinations:
+  - code: LIS
+    name: Lisboa
+    alert_price: 3000
+
+  - code: MAD
+    name: Madri
+
+  - code: MIA
+    name: Miami
+    alert_price: 2500
+
+monitor:
+  interval_hours: 3
+  max_results_per_route: 5
+  retry_attempts: 3
+  retry_base_delay_seconds: 2
+
+analysis:
+  min_score_samples: 12
+  low_confidence_max_samples: 30
+  moderate_confidence_max_samples: 100
+
+alerts:
+  exceptional_score: 90
+  cooldown_hours: 24
+  min_drop_amount: 100
+  min_drop_percent: 5
+
