@@ -96,11 +96,17 @@ Validate the public example and optionally inspect its planned routes:
 flyclub --config config/routes.example.yaml --show-routes
 ```
 
-There is no real monitor command yet. Add it here only after it exists and has been tested.
+Run one explicit live provider search for a configured route:
+
+```bash
+flyclub --config config/routes.example.yaml --search-route from_bh:LIS
+```
+
+This command performs real network requests through the unofficial provider and may reveal trip
+details in local output. There is no full monitor command yet.
 
 ## Git
 
 Make incremental, coherent commits. Avoid both giant mixed commits and trivial commit noise. Use
 clear conventional-style subjects such as `chore:`, `docs:`, `feat(config):`, or
 `test(provider):` when appropriate.
-

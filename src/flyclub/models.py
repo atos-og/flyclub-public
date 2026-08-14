@@ -18,8 +18,8 @@ class CabinClass(StrEnum):
 class MaxStops(StrEnum):
     ANY = "ANY"
     NON_STOP = "NON_STOP"
-    ONE_STOP = "ONE_STOP"
-    TWO_PLUS_STOPS = "TWO_PLUS_STOPS"
+    ONE_OR_FEWER_STOPS = "ONE_OR_FEWER_STOPS"
+    TWO_OR_FEWER_STOPS = "TWO_OR_FEWER_STOPS"
 
 
 class OriginRole(StrEnum):
@@ -58,6 +58,7 @@ class RouteDefinition:
 
 @dataclass(frozen=True, slots=True)
 class FlightLeg:
+    journey_index: int
     origin_airport: str
     destination_airport: str
     departure_time: datetime | None

@@ -9,6 +9,7 @@ description = "A personal radar for exceptional flight opportunities."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "flights @ git+https://github.com/punitarani/fli.git@121d34fea056dc513258958c4262cb5a4cc033c1",
     "pydantic>=2.10,<3",
     "PyYAML>=6.0,<7",
 ]
@@ -26,6 +27,9 @@ flyclub = "flyclub.main:cli"
 [tool.hatch.build.targets.wheel]
 packages = ["src/flyclub"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.pytest.ini_options]
 addopts = "-ra"
 pythonpath = ["src"]
@@ -37,4 +41,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
-

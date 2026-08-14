@@ -8,11 +8,13 @@ Status: Accepted
 
 Context: Fly Club needs lightweight Google Flights-oriented results on ephemeral GitHub runners.
 
-Decision: Use `fli` first; do not use Playwright, Amadeus, or SerpApi in V1.
+Decision: Use `fli` first; do not use Playwright, Amadeus, or SerpApi in V1. Pin the reviewed
+0.10.0 source commit until an equivalent release is published to PyPI.
 
 Reason: It is Python-native, avoids a browser, and supports the required search shape.
 
-Trade-offs: It relies on an unofficial Google interface and can break when upstream formats change.
+Trade-offs: It relies on an unofficial Google interface, can break when upstream formats change,
+and currently requires installing a fixed Git dependency.
 
 ## DEC-002 — Providers are isolated from the domain
 
@@ -140,4 +142,3 @@ workflow exists.
 Reason: It closes the silent-failure gap outside the Fly Club process.
 
 Trade-offs: It adds an external service and private ping URL, so user approval is required.
-

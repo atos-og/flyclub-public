@@ -4,7 +4,8 @@ Fly Club is a personal radar for exceptional flight opportunities. It is designe
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
 
-The project is currently in its foundation phase. It does not make real flight searches yet.
+The project currently validates route configuration and supports an explicit one-route Google
+Flights search. Persistence, analysis, alerts, and scheduled monitoring are not implemented yet.
 
 ## Principles
 
@@ -54,6 +55,15 @@ flyclub --show-routes
 ```
 
 Avoid `--show-routes` in shared CI logs because destinations and dates can be personal.
+
+To perform one explicit live search through `fli`:
+
+```bash
+flyclub --config config/routes.example.yaml --search-route from_bh:LIS
+```
+
+This uses the unofficial Google Flights interface, prints trip details locally, and does not store
+or alert anything yet.
 
 ## Configuration precedence
 

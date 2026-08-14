@@ -2,8 +2,8 @@
 
 ## Current system
 
-The implemented system currently validates configuration and expands it into provider-neutral
-route definitions:
+The implemented system validates configuration, expands it into provider-neutral routes, and can
+perform one explicit Google Flights search:
 
 ```text
 routes YAML or FLYCLUB_ROUTES_YAML
@@ -12,11 +12,16 @@ routes YAML or FLYCLUB_ROUTES_YAML
                   ↓
         route_planner.plan_routes
                   ↓
-     provider-neutral RouteDefinition objects
+     provider-neutral RouteDefinition
+                  ↓
+       GoogleFlightsProvider → fli
+                  ↓
+ provider-neutral SearchOutcome / FlightOption
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
-endpoints only when explicitly requested. It does not search or persist flights yet.
+endpoints only when explicitly requested. A separate explicit option performs one live route
+search. Results are not persisted or analyzed yet.
 
 ## Current modules
 
@@ -25,8 +30,10 @@ endpoints only when explicitly requested. It does not search or persist flights 
 - `flyclub.route_planner`: expands origin groups × destinations and creates stable route keys.
 - `flyclub.models`: owns provider-neutral enums and immutable route, leg, option, and search
   outcome models. Money is represented by `Decimal`.
-- `flyclub.providers.base`: defines the `FlightProvider` protocol. No live provider exists yet.
-- `flyclub.main`: exposes the current configuration-validation CLI.
+- `flyclub.providers.base`: defines the `FlightProvider` protocol.
+- `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
+  classifies errors, normalizes results, and validates deep links.
+- `flyclub.main`: exposes configuration validation and explicit single-route search.
 
 ## Component boundaries
 
@@ -67,7 +74,8 @@ The current check will be excluded from the historical distribution used to eval
 
 ## External integrations
 
-- `fli`: accepted primary V1 source, not implemented yet.
+- `fli`: implemented primary V1 source, pinned to the reviewed 0.10.0 Git commit because that
+  release is not yet available from PyPI.
 - Supabase PostgreSQL through `psycopg`: accepted persistence, not implemented yet.
 - Telegram Bot API: accepted notification channel, not implemented yet.
 - GitHub Actions: accepted scheduler and runner, workflow not implemented yet.
@@ -76,4 +84,3 @@ The current check will be excluded from the historical distribution used to eval
 
 Provider health inside the application and run health in PostgreSQL remain required even if an
 external dead-man switch is later enabled.
-
