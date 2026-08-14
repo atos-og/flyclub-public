@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "flights @ git+https://github.com/punitarani/fli.git@121d34fea056dc513258958c4262cb5a4cc033c1",
+    "psycopg[binary]>=3.2,<4",
     "pydantic>=2.10,<3",
     "PyYAML>=6.0,<7",
 ]
@@ -23,6 +24,7 @@ dev = [
 
 [project.scripts]
 flyclub = "flyclub.main:cli"
+flyclub-db-migrate = "flyclub.storage.migrations:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flyclub"]

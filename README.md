@@ -4,8 +4,9 @@ Fly Club is a personal radar for exceptional flight opportunities. It is designe
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
 
-The project currently validates route configuration and supports an explicit one-route Google
-Flights search. Persistence, analysis, alerts, and scheduled monitoring are not implemented yet.
+The project currently validates route configuration, supports an explicit one-route Google
+Flights search, and includes versioned PostgreSQL migrations plus an idempotent persistence
+repository. The provider search is not connected to persistence or scheduled monitoring yet.
 
 ## Principles
 
@@ -65,6 +66,19 @@ flyclub --config config/routes.example.yaml --search-route from_bh:LIS
 This uses the unofficial Google Flights interface, prints trip details locally, and does not store
 or alert anything yet.
 
+## PostgreSQL migrations
+
+Fly Club reads its PostgreSQL connection string only from `DATABASE_URL`. After configuring an
+empty Supabase/PostgreSQL database outside Git, apply all pending migrations with:
+
+```bash
+flyclub-db-migrate
+```
+
+Migrations are checksum-protected and serialized with a PostgreSQL advisory lock. The initial
+schema keeps route checks separate from itinerary snapshots and uses `NUMERIC(12, 2)` for money.
+Do not place the connection string in shell history, committed files, or command arguments.
+
 ## Configuration precedence
 
 Fly Club loads configuration in this order:
@@ -94,5 +108,5 @@ public.
 
 ## Planned V1
 
-The V1 will use Python, the `fli` Google Flights provider, PostgreSQL on Supabase, GitHub Actions,
+The V1 uses Python, the `fli` Google Flights provider, PostgreSQL on Supabase, GitHub Actions,
 Telegram, and pytest. It will not include a web interface, machine learning, or browser automation.

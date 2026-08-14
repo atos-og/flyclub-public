@@ -2,8 +2,8 @@
 
 ## Current system
 
-The implemented system validates configuration, expands it into provider-neutral routes, and can
-perform one explicit Google Flights search:
+The implemented system validates configuration, expands it into provider-neutral routes, can
+perform one explicit Google Flights search, and has an independent PostgreSQL persistence layer:
 
 ```text
 routes YAML or FLYCLUB_ROUTES_YAML
@@ -17,11 +17,17 @@ routes YAML or FLYCLUB_ROUTES_YAML
        GoogleFlightsProvider → fli
                   ↓
  provider-neutral SearchOutcome / FlightOption
+
+RouteDefinition + SearchOutcome
+                  ↓
+       PostgresRepository
+                  ↓
+ route_checks + price_snapshots
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
 endpoints only when explicitly requested. A separate explicit option performs one live route
-search. Results are not persisted or analyzed yet.
+search. The repository and migration CLI exist, but the search CLI does not persist results yet.
 
 ## Current modules
 
@@ -33,6 +39,10 @@ search. Results are not persisted or analyzed yet.
 - `flyclub.providers.base`: defines the `FlightProvider` protocol.
 - `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
   classifies errors, normalizes results, and validates deep links.
+- `flyclub.storage.migrations`: discovers checksum-protected SQL migrations, serializes migration
+  execution with an advisory lock, and reads its connection only from `DATABASE_URL`.
+- `flyclub.storage.postgres`: persists monitor runs, comparable routes, route checks, and normalized
+  snapshots atomically and idempotently; database errors are sanitized.
 - `flyclub.main`: exposes configuration validation and explicit single-route search.
 
 ## Component boundaries
@@ -58,9 +68,9 @@ Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlights
 The monitor will run as a short-lived GitHub Actions job approximately every three hours. It will
 start, collect, store, analyze, optionally notify, record health, and exit.
 
-## Planned persistence
+## Persistence
 
-No database schema exists yet. The accepted principal entities are:
+The initial PostgreSQL migration implements these principal entities:
 
 - `monitored_routes`: versioned comparable route definitions.
 - `monitor_runs`: start, finish, outcome, counters, and run error summary.
@@ -69,14 +79,17 @@ No database schema exists yet. The accepted principal entities are:
 - `alert_history`: consolidated alert decisions and Telegram delivery state.
 - `provider_health`: last success, consecutive problem runs, current incident, and recovery state.
 
-Statistics will use one best valid route price per `route_check`, not every returned itinerary.
-The current check will be excluded from the historical distribution used to evaluate it.
+The repository records one best valid route price per `route_check`, not every returned itinerary,
+while retaining all normalized options in `price_snapshots`. Its history query requires the current
+check ID and excludes it from the returned baseline. No live Supabase database has been connected
+or migrated yet.
 
 ## External integrations
 
 - `fli`: implemented primary V1 source, pinned to the reviewed 0.10.0 Git commit because that
   release is not yet available from PyPI.
-- Supabase PostgreSQL through `psycopg`: accepted persistence, not implemented yet.
+- Supabase PostgreSQL through `psycopg`: schema, migration runner, and repository implemented;
+  external database provisioning and live validation are pending.
 - Telegram Bot API: accepted notification channel, not implemented yet.
 - GitHub Actions: accepted scheduler and runner, workflow not implemented yet.
 - External dead-man switch: proposed to detect missing GitHub Actions executions; not accepted as

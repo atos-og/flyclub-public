@@ -105,6 +105,15 @@ flyclub --config config/routes.example.yaml --search-route from_bh:LIS
 This command performs real network requests through the unofficial provider and may reveal trip
 details in local output. There is no full monitor command yet.
 
+Apply pending PostgreSQL migrations after `DATABASE_URL` is supplied securely:
+
+```bash
+flyclub-db-migrate
+```
+
+Never pass the database URL as a command argument or print it. Migration tests use fakes; a live
+database validation requires an external PostgreSQL/Supabase instance.
+
 ## Git
 
 Make incremental, coherent commits. Avoid both giant mixed commits and trivial commit noise. Use

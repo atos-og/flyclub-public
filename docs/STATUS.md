@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 2 complete — real `fli` provider and controlled single-route search.
+Phase 3 code complete — PostgreSQL schema, migrations, and idempotent repository.
 
 ## Done
 
@@ -24,21 +24,32 @@ Phase 2 complete — real `fli` provider and controlled single-route search.
 - Google Flights URLs are accepted only when they are valid HTTP(S) URLs.
 - A controlled CLI option can search exactly one configured route.
 - A real public-example CNF → LIS round-trip search returned five BRL options and deep links.
+- PR #1 was validated, marked ready, and squash-merged into `main`.
+- `psycopg` PostgreSQL support added without an ORM.
+- Checksum-protected migration discovery and an advisory-locked migration CLI implemented.
+- Initial schema created for routes, runs, checks, snapshots, alert history, and provider health.
+- Monetary columns use `NUMERIC(12, 2)` and Python writes preserve `Decimal` values.
+- Route-check writes are atomic and idempotent on `(run, route, provider)`.
+- Successful checks store the best price separately from ranked normalized itinerary snapshots.
+- Historical best-price queries require and exclude the current route-check ID.
+- Repository database errors are sanitized so connection details are not echoed.
 
 ## In progress
 
-- Draft PR #1 is open for review and merge into `main`.
+- Phase 3 changes are on `agent/postgres-persistence`, pending publication and review.
 
 ## Next
 
-- Phase 3: design and implement the PostgreSQL schema and migrations.
-- Add `psycopg` storage repositories and idempotent persistence tests.
-- Store route checks separately from normalized price snapshots.
+- Publish and integrate Phase 3.
+- Build the monitor runner and connect sequential provider searches to persistence.
+- Provision a Supabase project, apply the initial migration, and run a live persistence smoke test.
 
 ## Known issues
 
-- No monitor runner, PostgreSQL schema, Telegram delivery, GitHub Actions workflow, statistics,
-  Deal Score, alert engine, deduplication, or health monitor exists yet.
+- No monitor runner, Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert
+  engine, alert deduplication, or health updater exists yet.
+- No live Supabase database has been provisioned or migrated; SQL behavior is currently covered by
+  repository and migration-runner unit tests with fakes.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -49,9 +60,10 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 23 passed, 88% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 37 passed, 87% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
+- `python -m pip check`: passed.
 - `git diff --check`: passed.
 
 Manual checks:
@@ -61,3 +73,6 @@ Manual checks:
   succeeded with five BRL round-trip options and valid Google Flights deep links.
 - `.venv`, `.env`, and `config/routes.yaml`: confirmed ignored by Git.
 - Repository scan found no committed credential values.
+- `flyclub-db-migrate` without `DATABASE_URL`: failed safely without exposing a value.
+- Migration discovery found the bundled `001_initial.sql`; no live PostgreSQL engine was available
+  for an integration test.
