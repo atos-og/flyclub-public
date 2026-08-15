@@ -98,10 +98,13 @@ airport while preserving the warning that separate positioning travel is not inc
 
 ## GitHub Actions
 
-The private monitor workflow runs every 90 minutes (UTC), alternating between minutes 17 and 47,
-and also supports manual dispatch. GitHub schedules are approximate and can be delayed. The
-workflow allows only read access to repository contents, prevents overlapping monitor runs, applies
-pending migrations, and then runs the persisted monitor without printing private route details.
+The private monitor workflow supports manual dispatch and an external primary trigger every 90
+minutes. Native GitHub schedules remain as duplicate-safe fallbacks 30 minutes later because
+scheduled events are approximate and can be delayed. The workflow allows read access only to
+repository contents and Actions run metadata, prevents overlapping monitor runs, applies pending
+migrations, and runs the persisted monitor without printing private route details. Follow
+[`docs/scheduling-externo.md`](docs/scheduling-externo.md) to configure the optional external
+scheduler without exposing its repository-scoped token.
 
 Configure these repository secrets before enabling or manually dispatching the monitor:
 

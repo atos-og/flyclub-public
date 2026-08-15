@@ -58,6 +58,12 @@ Trade-offs: Schedules are approximate and require independent monitoring to dete
 The higher request rate also modestly increases unofficial-provider reliability risk and storage
 growth.
 
+An external `workflow_dispatch` scheduler may be used as the primary trigger to reduce queue
+latency. Native schedules remain 30-minute-delayed fallbacks and skip provider/database work after
+a recent external run. The external credential is a repository-scoped fine-grained token held only
+by the scheduler, because a GitHub Repository Secret cannot authenticate a caller outside a
+workflow.
+
 ## DEC-005 — Route checks and snapshots are separate
 
 Status: Accepted

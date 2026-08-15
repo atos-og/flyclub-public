@@ -105,9 +105,11 @@ Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlights
        → Alert Engine → Telegram
 ```
 
-The monitor runs as a short-lived GitHub Actions job approximately every 90 minutes. It
-starts, collects, stores, analyzes, optionally notifies, records health, and exits. The job is
-wrapped by one external Healthchecks.io heartbeat:
+The monitor runs as a short-lived GitHub Actions job approximately every 90 minutes. An external
+`workflow_dispatch` is the intended primary trigger; native schedules run 30 minutes later as a
+fallback and skip business work when a recent external run exists. It starts, collects, stores,
+analyzes, optionally notifies, records health, and exits. The job is wrapped by one external
+Healthchecks.io heartbeat:
 
 The workflow cron is the single source of truth for deployment cadence. Route configuration does
 not expose an interval field that the application cannot enforce.
@@ -153,9 +155,9 @@ data removed afterward.
 - Supabase PostgreSQL through `psycopg`: provisioned, migrated, and validated with idempotent
   migrations and complete synthetic persistence/cleanup smoke tests.
 - Telegram Bot API: configured, live-tested, and connected to idempotent monitor delivery.
-- GitHub Actions: the least-privilege, non-overlapping monitor runs manually and every 90 minutes,
-  alternating between minutes 17 and 47; its first production dispatch succeeded. CI separately
-  validates pushes and pull requests.
+- GitHub Actions: the least-privilege, non-overlapping monitor accepts manual/external dispatches
+  and retains duplicate-safe native fallback schedules 30 minutes later. CI separately validates
+  pushes and pull requests.
 - Healthchecks.io: one external dead-man check wraps the main monitor workflow with start,
   success, and failure signals. Its private base Ping URL is read only from the
   `HEALTHCHECKS_PING_URL` Repository Secret; native Healthchecks.io Telegram delivery reports

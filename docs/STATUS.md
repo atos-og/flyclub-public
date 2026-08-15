@@ -142,6 +142,12 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   minute-47 UTC cron entries, preserving off-hour scheduling and non-overlap protection.
 - The unused `monitor.interval_hours` YAML field was removed so the GitHub Actions cron is the sole
   source of truth for deployment cadence.
+- The workflow accepts external/manual dispatches as the primary low-latency trigger and retains
+  native schedules 30 minutes later as duplicate-safe fallbacks. A fallback skips all provider,
+  database, Telegram, and Healthchecks work after a recent successful or active external run.
+- A public setup guide documents a repository-only fine-grained `Actions: write` token kept in the
+  external scheduler, two grouped cron-job.org jobs covering all 16 Brasília times, validation,
+  rotation, and fallback behavior without committing credentials.
 - The Healthchecks.io `Fly Club Monitor` check now uses a 90-minute Simple period with the existing
   one-hour grace window, verified in the account after the workflow deployment.
 - PR #17 passed CI and was squash-merged into `main`; the remote workflow exposes both alternating

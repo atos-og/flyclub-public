@@ -8,12 +8,23 @@ def _workflow_text() -> str:
     return WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
-def test_monitor_runs_every_ninety_minutes_away_from_top_of_hour() -> None:
+def test_native_schedule_is_a_thirty_minute_delayed_fallback() -> None:
     workflow = _workflow_text()
 
-    assert 'cron: "17 0,3,6,9,12,15,18,21 * * *"' in workflow
-    assert 'cron: "47 1,4,7,10,13,16,19,22 * * *"' in workflow
+    assert 'cron: "47 0,3,6,9,12,15,18,21 * * *"' in workflow
+    assert 'cron: "17 2,5,8,11,14,17,20,23 * * *"' in workflow
     assert 'cron: "17 */3 * * *"' not in workflow
+
+
+def test_manual_dispatch_and_duplicate_safe_fallback_coexist() -> None:
+    workflow = _workflow_text()
+
+    assert "workflow_dispatch:" in workflow
+    assert "actions: read" in workflow
+    assert "event=workflow_dispatch&per_page=10" in workflow
+    assert "date -u -d '70 minutes ago'" in workflow
+    assert "native fallback will run" in workflow
+    assert workflow.count("steps.schedule_guard.outputs.should_run == 'true'") == 8
 
 
 def test_healthchecks_wraps_the_main_monitor_flow() -> None:
@@ -28,7 +39,7 @@ def test_healthchecks_wraps_the_main_monitor_flow() -> None:
     assert '"${HEALTHCHECKS_PING_URL}/start"' in workflow
     assert '"${HEALTHCHECKS_PING_URL}"' in workflow
     assert '"${HEALTHCHECKS_PING_URL}/fail"' in workflow
-    assert "if: ${{ always() }}" in workflow
+    assert "if: ${{ always() && steps.schedule_guard.outputs.should_run == 'true' }}" in workflow
     assert "MONITOR_JOB_STATUS: ${{ job.status }}" in workflow
 
 
