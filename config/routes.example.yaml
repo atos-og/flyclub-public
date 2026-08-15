@@ -37,7 +37,6 @@ destinations:
     alert_price: 2500
 
 monitor:
-  interval_hours: 3
   max_results_per_route: 5
   retry_attempts: 3
   retry_base_delay_seconds: 2

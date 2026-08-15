@@ -102,7 +102,6 @@ class DestinationConfig(StrictModel):
 
 
 class MonitorConfig(StrictModel):
-    interval_hours: int = Field(default=3, ge=1, le=24)
     max_results_per_route: int = Field(default=5, ge=1, le=30)
     retry_attempts: int = Field(default=3, ge=1, le=5)
     retry_base_delay_seconds: int = Field(default=2, ge=1, le=30)

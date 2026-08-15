@@ -62,3 +62,12 @@ def test_deal_score_weights_must_total_one_hundred() -> None:
 
     with pytest.raises(ConfigError, match="weights must total 100"):
         load_config_text(content)
+
+
+def test_deployment_schedule_is_not_accepted_as_route_configuration() -> None:
+    content = EXAMPLE_PATH.read_text(encoding="utf-8").replace(
+        "monitor:\n", "monitor:\n  interval_hours: 3\n"
+    )
+
+    with pytest.raises(ConfigError, match="Extra inputs are not permitted"):
+        load_config_text(content)

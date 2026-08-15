@@ -130,6 +130,8 @@ Phase 13 complete — 90-minute production monitoring cadence implemented.
   success ping all completed without runtime warnings.
 - The production monitor schedule now runs every 90 minutes using alternating minute-17 and
   minute-47 UTC cron entries, preserving off-hour scheduling and non-overlap protection.
+- The unused `monitor.interval_hours` YAML field was removed so the GitHub Actions cron is the sole
+  source of truth for deployment cadence.
 - The Healthchecks.io `Fly Club Monitor` check now uses a 90-minute Simple period with the existing
   one-hour grace window, verified in the account after the workflow deployment.
 - PR #17 passed CI and was squash-merged into `main`; the remote workflow exposes both alternating
@@ -155,7 +157,7 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 148 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 149 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.

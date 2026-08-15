@@ -108,6 +108,9 @@ The monitor runs as a short-lived GitHub Actions job approximately every 90 minu
 starts, collects, stores, analyzes, optionally notifies, records health, and exits. The job is
 wrapped by one external Healthchecks.io heartbeat:
 
+The workflow cron is the single source of truth for deployment cadence. Route configuration does
+not expose an interval field that the application cannot enforce.
+
 ```text
 GitHub Actions job starts → Healthchecks /start
               ↓
