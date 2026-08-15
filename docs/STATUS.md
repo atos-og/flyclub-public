@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 8 starting — alert decisions and deduplication over persisted Deal Score evaluations.
+Phase 8 in progress — alert decisions, formatting, and Telegram delivery foundations.
 
 ## Done
 
@@ -72,20 +72,30 @@ Phase 8 starting — alert decisions and deduplication over persisted Deal Score
   is a typed fallback when no suitable 24-hour reference exists.
 - Persisted monitor summaries include only the safe aggregate count of analyzed routes.
 - A real integrated cycle successfully collected, persisted, and analyzed every planned route.
+- Pure alert decisions consolidate price target, new low, exceptional score, and significant drop.
+- Manual targets work during cold start; statistical triggers require minimum history.
+- Low-confidence exceptional scores require independent corroboration before sending.
+- Significant drops require both configured absolute and percentage thresholds.
+- Cooldown suppresses repetition unless the fare falls significantly again.
+- The plain-text formatter includes actionable route, price, statistics, confidence, positioning
+  warning, and only a validated provider URL when one exists.
+- A minimal sanitized Telegram Bot API client is implemented with no additional dependency and no
+  credential values in code or logs.
 
 ## In progress
 
-- Analysis orchestration changes are on `agent/analysis-orchestration`, pending publication and
-  review.
+- Alert Engine and Telegram foundations are on `agent/alert-engine`, pending publication and review.
 
 ## Next
 
-- Publish and integrate persisted analysis orchestration.
-- Implement consolidated alert decisions and low-noise deduplication before Telegram delivery.
+- Publish and integrate the alert foundations.
+- Configure a private Telegram bot/chat, persist decisions, and validate one controlled test
+  delivery before wiring automatic sends.
 
 ## Known issues
 
-- No Telegram delivery, GitHub Actions workflow, alert engine, or alert deduplication exists yet.
+- Alert decisions are not persisted or invoked by the monitor yet.
+- No real Telegram delivery or GitHub Actions workflow exists yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -96,7 +106,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 97 passed, 92% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 115 passed, 92% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.

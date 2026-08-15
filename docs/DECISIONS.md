@@ -164,3 +164,22 @@ current movement from being rewarded twice.
 
 Trade-offs: Low-sample scores remain useful but must be displayed and handled as provisional. A
 separate future signal will be needed to express purchase timing or forecast urgency.
+
+## DEC-013 — Low-confidence and cooldown alert safeguards
+
+Status: Accepted
+
+Context: A high provisional score or an unchanged low fare can otherwise produce noisy alerts,
+especially early in a route's history.
+
+Decision: Permit a manual price target during cold start. Require the configured minimum history
+for statistical new-low and exceptional-score triggers. A low-confidence exceptional score cannot
+send alone and needs corroboration from a new low, manual target, or significant drop. Significant
+drop must satisfy both absolute and percentage thresholds. Cooldown suppresses repeated alerts
+unless a new significant drop occurs; multiple reasons consolidate into one decision.
+
+Reason: Confidence must affect notification weight, and repeated observations must not become
+repeated messages.
+
+Trade-offs: Conservative gating can delay some genuine early opportunities, while post-cooldown
+reminders can still repeat an opportunity that remains valid.

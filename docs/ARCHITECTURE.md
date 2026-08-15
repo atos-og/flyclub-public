@@ -63,6 +63,12 @@ database writes.
 - `flyclub.analysis.evaluator`: loads the prior-only comparable series and last delivered alert,
   prefers a valid 24-hour drop reference with last alert as fallback, and runs the complete pure
   analysis pipeline after each persisted successful check.
+- `flyclub.alerts.engine`: consolidates price target, new low, exceptional score, and significant
+  drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
+- `flyclub.alerts.formatter`: builds a short plain-text message from normalized route, itinerary,
+  statistics, score, and alert reasons without inventing missing URLs.
+- `flyclub.alerts.telegram`: implements a sanitized standard-library client for the Telegram Bot
+  API. It is unit-tested but not connected to real credentials or monitor delivery yet.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
 
@@ -77,8 +83,9 @@ database writes.
 
 ## V1 flow
 
-Collection through PostgreSQL and orchestration through statistics, trend, and Deal Score are
-implemented. Components after Deal Score remain planned and must not be treated as operational:
+Collection through PostgreSQL, analysis, and the pure alert-decision/formatting foundations are
+implemented. Decision persistence and Telegram delivery remain planned and must not be treated as
+operational:
 
 ```text
 Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlightsProvider / fli
