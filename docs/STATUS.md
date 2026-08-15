@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 7 in progress — deterministic Deal Score and separated price-movement signals.
+Phase 8 starting — alert decisions and deduplication over persisted Deal Score evaluations.
 
 ## Done
 
@@ -65,19 +65,26 @@ Phase 7 in progress — deterministic Deal Score and separated price-movement si
   two prior-only multi-observation median windows so the current drop is not counted twice.
 - Scores require at least 12 prior observations; low-confidence results are marked provisional.
 - Every score exposes its component points, maximums, metrics, confidence, and classification.
+- PR #7 was validated and squash-merged into `main`.
+- Persisted successful checks now load chronological prior observations while explicitly excluding
+  the current check, then calculate statistics, trend, recent drop, and Deal Score.
+- A close 24-hour observation is preferred for recent drop; the last successfully delivered alert
+  is a typed fallback when no suitable 24-hour reference exists.
+- Persisted monitor summaries include only the safe aggregate count of analyzed routes.
+- A real integrated cycle successfully collected, persisted, and analyzed every planned route.
 
 ## In progress
 
-- Phase 7 Deal Score changes are on `agent/deal-score`, pending publication and review.
+- Analysis orchestration changes are on `agent/analysis-orchestration`, pending publication and
+  review.
 
 ## Next
 
-- Publish and integrate the Deal Score foundation.
-- Connect statistics, recent-drop references, trend, and Deal Score to persisted monitor results.
+- Publish and integrate persisted analysis orchestration.
+- Implement consolidated alert decisions and low-noise deduplication before Telegram delivery.
 
 ## Known issues
 
-- Statistics and Deal Score are not connected to persisted monitor results yet.
 - No Telegram delivery, GitHub Actions workflow, alert engine, or alert deduplication exists yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
@@ -89,7 +96,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 87 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 97 passed, 92% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -115,3 +122,5 @@ Manual checks:
 - Private configuration validation planned eight routes without printing their endpoints.
 - Real provider dry run: eight successful routes, zero empty results, and zero failures.
 - First real persisted cycle: eight successful routes, zero empty results, and zero failures.
+- Integrated persisted analysis cycle: eight successful and analyzed routes, zero empty results,
+  and zero failures; cold-start sample sizes correctly produced no statistically eligible score.

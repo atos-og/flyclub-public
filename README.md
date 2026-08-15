@@ -4,10 +4,10 @@ Fly Club is a personal radar for exceptional flight opportunities. It is designe
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
 
-The project currently validates route configuration, supports an explicit one-route Google
-Flights search, and includes versioned PostgreSQL migrations plus an idempotent persistence
-repository. The monitor runner searches all configured routes sequentially, either as a
-safe-output dry run or with PostgreSQL persistence; scheduled execution is not configured yet.
+The project currently validates route configuration, searches Google Flights, persists every
+result in PostgreSQL, and evaluates successful prices against prior-only history with deterministic
+statistics, trend, confidence, and Deal Score. The monitor runs all configured routes sequentially
+with safe aggregate output; alert delivery and scheduled execution are not configured yet.
 
 ## Principles
 

@@ -15,7 +15,13 @@ from uuid import UUID, uuid4
 import psycopg
 from psycopg.types.json import Jsonb
 
-from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
+from flyclub.models import (
+    FlightOption,
+    PriceObservation,
+    RouteDefinition,
+    SearchOutcome,
+    SearchStatus,
+)
 
 DATABASE_URL_ENV = "DATABASE_URL"
 
@@ -270,6 +276,69 @@ class PostgresRepository:
         except psycopg.Error as error:
             self._raise_sanitized(error)
         raise StorageError("Price history query ended unexpectedly")
+
+    def price_history(
+        self,
+        *,
+        route_key: str,
+        exclude_check_id: UUID,
+        limit: int = 500,
+    ) -> tuple[PriceObservation, ...]:
+        """Load prior successful observations in chronological order."""
+
+        if limit < 1:
+            raise ValueError("limit must be at least 1")
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT rc.best_price, rc.checked_at
+                    FROM route_checks AS rc
+                    JOIN monitored_routes AS mr ON mr.id = rc.route_id
+                    WHERE mr.route_key = %s
+                      AND rc.status = 'SUCCESS'
+                      AND rc.best_price IS NOT NULL
+                      AND rc.id <> %s
+                    ORDER BY rc.checked_at DESC
+                    LIMIT %s
+                    """,
+                    (route_key, exclude_check_id, limit),
+                )
+                newest_first = cursor.fetchall()
+                return tuple(
+                    PriceObservation(price=row[0], observed_at=row[1])
+                    for row in reversed(newest_first)
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Price observation query ended unexpectedly")
+
+    def last_sent_alert_price(self, *, route_key: str) -> PriceObservation | None:
+        """Load the price and send time of the last successfully delivered route alert."""
+
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT rc.best_price, ah.sent_at
+                    FROM alert_history AS ah
+                    JOIN route_checks AS rc ON rc.id = ah.route_check_id
+                    JOIN monitored_routes AS mr ON mr.id = ah.route_id
+                    WHERE mr.route_key = %s
+                      AND ah.decision = 'SEND'
+                      AND ah.delivery_status = 'SENT'
+                      AND rc.best_price IS NOT NULL
+                      AND ah.sent_at IS NOT NULL
+                    ORDER BY ah.sent_at DESC
+                    LIMIT 1
+                    """,
+                    (route_key,),
+                )
+                row = cursor.fetchone()
+                return None if row is None else PriceObservation(price=row[0], observed_at=row[1])
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Last alert price query ended unexpectedly")
 
     def update_provider_health(
         self,

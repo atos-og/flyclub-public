@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -56,6 +57,17 @@ class MonitorRepository(Protocol):
     ) -> None: ...
 
 
+class RouteAnalyzer(Protocol):
+    def evaluate(
+        self,
+        *,
+        route_key: str,
+        current_check_id: UUID,
+        current_price: Decimal,
+        current_at: datetime,
+    ) -> object: ...
+
+
 @dataclass(frozen=True, slots=True)
 class MonitorSummary:
     run_id: UUID
@@ -64,6 +76,7 @@ class MonitorSummary:
     successful_routes: int
     empty_routes: int
     failed_routes: int
+    analyzed_routes: int
     persisted: bool
 
 
@@ -114,10 +127,13 @@ def run_monitor(
     provider: FlightProvider,
     max_results: int,
     repository: MonitorRepository | None,
+    analyzer: RouteAnalyzer | None = None,
     run_id: UUID | None = None,
 ) -> MonitorSummary:
     """Search every route sequentially and optionally persist every outcome."""
 
+    if analyzer is not None and repository is None:
+        raise ValueError("analyzer requires a persistence repository")
     selected_run_id = run_id or uuid4()
     if repository is not None:
         repository.start_run(
@@ -130,6 +146,7 @@ def run_monitor(
     successful = 0
     empty = 0
     failed = 0
+    analyzed = 0
     outcomes: list[SearchOutcome] = []
 
     try:
@@ -140,11 +157,21 @@ def run_monitor(
                 outcome = _unexpected_failure(provider.name, error)
 
             if repository is not None:
-                repository.record_route_check(
+                checked_at = datetime.now(UTC)
+                check_id = repository.record_route_check(
                     run_id=selected_run_id,
                     route=route,
                     outcome=outcome,
+                    checked_at=checked_at,
                 )
+                if analyzer is not None and outcome.status is SearchStatus.SUCCESS:
+                    analyzer.evaluate(
+                        route_key=route.key,
+                        current_check_id=check_id,
+                        current_price=min(option.price for option in outcome.options),
+                        current_at=checked_at,
+                    )
+                    analyzed += 1
 
             if outcome.status is SearchStatus.SUCCESS:
                 successful += 1
@@ -192,5 +219,6 @@ def run_monitor(
         successful_routes=successful,
         empty_routes=empty,
         failed_routes=failed,
+        analyzed_routes=analyzed,
         persisted=repository is not None,
     )

@@ -36,10 +36,14 @@ class FakeCursor:
         duplicate_check_id: UUID | None = None,
         update_count: int = 1,
         history: tuple[Decimal, ...] = (),
+        observation_history: tuple[tuple[Decimal, datetime], ...] = (),
+        last_alert: tuple[Decimal, datetime] | None = None,
     ) -> None:
         self.duplicate_check_id = duplicate_check_id
         self.rowcount = update_count
         self.history = history
+        self.observation_history = observation_history
+        self.last_alert = last_alert
         self.executions: list[tuple[str, Any]] = []
         self.batches: list[tuple[str, list[tuple[Any, ...]]]] = []
         self._result: tuple[Any, ...] | None = None
@@ -59,6 +63,8 @@ class FakeCursor:
             self._result = None if self.duplicate_check_id else (params[0],)
         elif normalized.startswith("SELECT id FROM route_checks"):
             self._result = (self.duplicate_check_id,) if self.duplicate_check_id else None
+        elif normalized.startswith("SELECT rc.best_price, ah.sent_at"):
+            self._result = self.last_alert
         else:
             self._result = None
 
@@ -68,7 +74,9 @@ class FakeCursor:
     def fetchone(self) -> tuple[Any, ...] | None:
         return self._result
 
-    def fetchall(self) -> list[tuple[Decimal]]:
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        if self.observation_history:
+            return list(self.observation_history)
         return [(price,) for price in self.history]
 
 
@@ -258,6 +266,51 @@ def test_best_price_history_requires_positive_limit() -> None:
             exclude_check_id=uuid4(),
             limit=0,
         )
+
+
+def test_price_history_returns_chronological_prior_observations() -> None:
+    older = datetime(2027, 1, 1, tzinfo=UTC)
+    newer = datetime(2027, 1, 2, tzinfo=UTC)
+    cursor = FakeCursor(
+        observation_history=(
+            (Decimal("4200.00"), newer),
+            (Decimal("4000.00"), older),
+        )
+    )
+    repository = _repository(cursor)
+    current_check_id = uuid4()
+
+    history = repository.price_history(
+        route_key=_route().key,
+        exclude_check_id=current_check_id,
+        limit=25,
+    )
+
+    assert [observation.price for observation in history] == [
+        Decimal("4000.00"),
+        Decimal("4200.00"),
+    ]
+    assert [observation.observed_at for observation in history] == [older, newer]
+    _, params = _execution(cursor, "SELECT rc.best_price, rc.checked_at")
+    assert params == (_route().key, current_check_id, 25)
+
+
+def test_last_sent_alert_price_returns_only_persisted_delivery_reference() -> None:
+    sent_at = datetime(2027, 1, 1, tzinfo=UTC)
+    cursor = FakeCursor(last_alert=(Decimal("3900.00"), sent_at))
+    repository = _repository(cursor)
+
+    observation = repository.last_sent_alert_price(route_key=_route().key)
+
+    assert observation is not None
+    assert observation.price == Decimal("3900.00")
+    assert observation.observed_at == sent_at
+    _, params = _execution(cursor, "SELECT rc.best_price, ah.sent_at")
+    assert params == (_route().key,)
+
+
+def test_last_sent_alert_price_returns_none_without_delivery() -> None:
+    assert _repository(FakeCursor()).last_sent_alert_price(route_key=_route().key) is None
 
 
 def test_option_fingerprint_ignores_volatile_provider_url() -> None:

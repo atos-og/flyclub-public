@@ -81,6 +81,8 @@ def _print_search_outcome(route: RouteDefinition, outcome: SearchOutcome) -> Non
 def _run_all_routes(
     config: FlyClubConfig, routes: tuple[RouteDefinition, ...], *, dry_run: bool
 ) -> int:
+    from flyclub.analysis.deal_score import DealScoreWeights
+    from flyclub.analysis.evaluator import AnalysisPolicy, PersistedPriceAnalyzer
     from flyclub.monitor import run_monitor
     from flyclub.providers.google_flights import GoogleFlightsProvider
     from flyclub.storage.postgres import PostgresRepository
@@ -90,12 +92,25 @@ def _run_all_routes(
         retry_base_delay_seconds=config.monitor.retry_base_delay_seconds,
     )
     repository = None if dry_run else PostgresRepository.from_env()
+    analyzer = None
+    if repository is not None:
+        configured_weights = config.analysis.deal_score_weights
+        analyzer = PersistedPriceAnalyzer(
+            repository,
+            AnalysisPolicy(
+                min_score_samples=config.analysis.min_score_samples,
+                low_confidence_max_samples=config.analysis.low_confidence_max_samples,
+                moderate_confidence_max_samples=config.analysis.moderate_confidence_max_samples,
+                weights=DealScoreWeights(**configured_weights.model_dump()),
+            ),
+        )
     summary = run_monitor(
         routes=routes,
         config_fingerprint=config_fingerprint(config),
         provider=provider,
         max_results=config.monitor.max_results_per_route,
         repository=repository,
+        analyzer=analyzer,
     )
     mode = "dry-run" if dry_run else "persisted"
     print(f"Fly Club monitor finished: {summary.status.value} ({mode}).")
@@ -103,6 +118,7 @@ def _run_all_routes(
     print(f"Successful routes: {summary.successful_routes}")
     print(f"Empty routes: {summary.empty_routes}")
     print(f"Failed routes: {summary.failed_routes}")
+    print(f"Analyzed routes: {summary.analyzed_routes}")
     return 0 if summary.status is RunStatus.SUCCESS else 1
 
 

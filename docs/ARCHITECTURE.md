@@ -24,6 +24,10 @@ routes YAML or FLYCLUB_ROUTES_YAML
        PostgresRepository
                   ↓
  route_checks + price_snapshots
+                  ↓
+   prior-only history + last sent alert
+                  ↓
+ statistics → trend → Deal Score
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
@@ -56,6 +60,9 @@ database writes.
 - `flyclub.analysis.deal_score`: calculates an explainable 0–100 score from percentile, median
   discount, recorded-low proximity, recent drop, and trend. Low-confidence scores are explicitly
   provisional, and travel urgency is excluded.
+- `flyclub.analysis.evaluator`: loads the prior-only comparable series and last delivered alert,
+  prefers a valid 24-hour drop reference with last alert as fallback, and runs the complete pure
+  analysis pipeline after each persisted successful check.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
 
@@ -70,9 +77,8 @@ database writes.
 
 ## V1 flow
 
-Collection through PostgreSQL and the pure statistics, trend, and Deal Score foundations are
-implemented. Their orchestration and components after them remain planned and must not be treated
-as operational:
+Collection through PostgreSQL and orchestration through statistics, trend, and Deal Score are
+implemented. Components after Deal Score remain planned and must not be treated as operational:
 
 ```text
 Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlightsProvider / fli

@@ -57,6 +57,18 @@ class FakeRepository:
         self.health.append(kwargs)
 
 
+class FakeAnalyzer:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.evaluations: list[dict[str, object]] = []
+
+    def evaluate(self, **kwargs: object) -> object:
+        self.evaluations.append(kwargs)
+        if self.fail:
+            raise RuntimeError("analysis failed")
+        return object()
+
+
 def _routes(count: int = 3) -> tuple[RouteDefinition, ...]:
     return plan_routes(load_config(EXAMPLE_PATH))[:count]
 
@@ -86,6 +98,7 @@ def _run(
     outcomes: list[SearchOutcome | Exception],
     *,
     repository: FakeRepository | None = None,
+    analyzer: FakeAnalyzer | None = None,
 ) -> tuple[MonitorSummary, FakeProvider]:
     routes = _routes(len(outcomes))
     provider = FakeProvider(outcomes)
@@ -96,6 +109,7 @@ def _run(
         provider=provider,
         max_results=5,
         repository=repository,
+        analyzer=analyzer,
     )
     return summary, provider
 
@@ -119,6 +133,7 @@ def test_monitor_queries_routes_sequentially_and_persists_every_outcome() -> Non
     assert summary.successful_routes == 2
     assert summary.empty_routes == 1
     assert summary.failed_routes == 0
+    assert summary.analyzed_routes == 0
     assert summary.persisted is True
 
 
@@ -193,6 +208,43 @@ def test_dry_run_searches_without_repository() -> None:
 
     assert summary.status is RunStatus.SUCCESS
     assert summary.persisted is False
+
+
+def test_monitor_analyzes_only_successful_persisted_checks() -> None:
+    repository = FakeRepository()
+    analyzer = FakeAnalyzer()
+
+    summary, _ = _run([_success(), _empty(), _failure()], repository=repository, analyzer=analyzer)
+
+    assert summary.analyzed_routes == 1
+    assert len(analyzer.evaluations) == 1
+    evaluation = analyzer.evaluations[0]
+    assert evaluation["route_key"] == _routes()[0].key
+    assert evaluation["current_price"] == Decimal("3000.00")
+    assert evaluation["current_check_id"] is not None
+
+
+def test_monitor_requires_persistence_for_analysis() -> None:
+    try:
+        _run([_success()], analyzer=FakeAnalyzer())
+    except ValueError as error:
+        assert str(error) == "analyzer requires a persistence repository"
+    else:
+        raise AssertionError("Analysis without persistence should fail")
+
+
+def test_analysis_failure_aborts_and_closes_the_run() -> None:
+    repository = FakeRepository()
+
+    try:
+        _run([_success()], repository=repository, analyzer=FakeAnalyzer(fail=True))
+    except RuntimeError as error:
+        assert str(error) == "analysis failed"
+    else:
+        raise AssertionError("Analysis failure should propagate")
+
+    assert repository.finished[0]["status"] is RunStatus.FAILURE
+    assert repository.finished[0]["error_code"] == "MONITOR_ABORTED"
 
 
 def test_monitor_attempts_to_finish_failed_run_after_persistence_error() -> None:

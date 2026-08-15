@@ -95,3 +95,11 @@ class SearchOutcome:
             raise ValueError("A successful search must contain at least one option")
         if self.status is not SearchStatus.SUCCESS and self.options:
             raise ValueError("Only a successful search may contain flight options")
+
+
+@dataclass(frozen=True, slots=True)
+class PriceObservation:
+    """One prior best-price observation in a comparable route series."""
+
+    price: Decimal
+    observed_at: datetime

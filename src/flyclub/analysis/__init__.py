@@ -8,6 +8,12 @@ from flyclub.analysis.deal_score import (
     RecentDropSignal,
     calculate_deal_score,
 )
+from flyclub.analysis.evaluator import (
+    AnalysisPolicy,
+    PersistedPriceAnalyzer,
+    RoutePriceEvaluation,
+    evaluate_price,
+)
 from flyclub.analysis.statistics import (
     ConfidenceLevel,
     PriceStatistics,
@@ -24,18 +30,22 @@ from flyclub.analysis.trend import (
 )
 
 __all__ = [
+    "AnalysisPolicy",
     "ConfidenceLevel",
     "DealClassification",
     "DealScoreResult",
     "DealScoreWeights",
+    "PersistedPriceAnalyzer",
     "PriceStatistics",
     "RecentDropBasis",
     "RecentDropSignal",
+    "RoutePriceEvaluation",
     "TrendAnalysis",
     "TrendDirection",
     "analyze_price",
     "analyze_trend",
     "calculate_deal_score",
+    "evaluate_price",
     "percentile",
     "percentile_rank",
     "price_change_percent",
