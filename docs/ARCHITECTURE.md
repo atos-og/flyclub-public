@@ -73,7 +73,7 @@ database writes.
   drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
 - `flyclub.alerts.formatter`: builds a short plain-text message from normalized route, itinerary,
   passenger-scoped total price, statistics, score, and alert reasons without inventing missing
-  URLs.
+  URLs, and separately formats non-persistent two-passenger confirmations.
 - `flyclub.alerts.telegram`: implements a sanitized standard-library client for the Telegram Bot
   API.
 - `flyclub.alerts.service`: persists each consolidated decision, sends only a newly created `SEND`,
@@ -82,6 +82,8 @@ database writes.
   one recovery after a reported incident, with persistent deduplication and retry-on-failure state.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
+- `flyclub.manual_confirmation`: validates four explicit workflow inputs, performs one
+  two-passenger search, and sends a clearly tagged Telegram result without persistence or analysis.
 
 ## Component boundaries
 

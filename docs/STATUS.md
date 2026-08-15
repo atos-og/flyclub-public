@@ -88,6 +88,9 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   only a validated provider URL when one exists.
 - The alert price line explicitly labels the configured passenger count with correct singular or
   plural wording, preventing a one-passenger total from being mistaken for a group total.
+- A separate manually dispatched workflow confirms one explicit itinerary for exactly two Economy
+  passengers, sends the total and per-person amount to Telegram, and never persists or analyzes the
+  result. Automatic alerts scoring at least 80 with moderate/high confidence link to this check.
 - A private passenger-count change generated new comparable route keys while retaining the prior
   series separately; no historical prices crossed the comparability boundary.
 - The first production dispatch after that change completed in 1m54s with eight successful and

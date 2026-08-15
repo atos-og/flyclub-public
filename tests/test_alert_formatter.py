@@ -4,7 +4,11 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from flyclub.alerts.engine import AlertDecision, AlertReason, AlertResult
-from flyclub.alerts.formatter import format_alert_message
+from flyclub.alerts.formatter import (
+    MANUAL_CONFIRMATION_WORKFLOW_URL,
+    format_alert_message,
+    format_manual_confirmation_message,
+)
 from flyclub.analysis.deal_score import DealClassification, DealScoreResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel, PriceStatistics
@@ -121,6 +125,9 @@ def test_formatter_builds_short_actionable_explainable_message() -> None:
 🏆 Menor já registrado: R$ 2.980,00
 🔔 Motivos: novo menor preço registrado; preço estatisticamente excepcional
 
+👥 Antes de comprar, confirme o preço para 2 passageiros:
+https://github.com/atos-og/flyclub/actions/workflows/confirm-two-passengers.yml
+
 🔗 Ver oferta: https://www.google.com/travel/flights/example"""
     )
     assert len(message) < 4096
@@ -166,3 +173,34 @@ def test_formatter_does_not_invent_missing_url() -> None:
     )
 
     assert "Ver oferta" not in message
+
+
+def test_confirmation_reminder_requires_score_80_and_moderate_confidence() -> None:
+    evaluation = _evaluation()
+    low_score = RoutePriceEvaluation(
+        statistics=evaluation.statistics,
+        trend=evaluation.trend,
+        recent_drop=evaluation.recent_drop,
+        deal_score=DealScoreResult(
+            score=79,
+            classification=DealClassification.GREAT,
+            confidence=ConfidenceLevel.HIGH,
+            provisional=False,
+            components=(),
+        ),
+    )
+
+    message = format_alert_message(
+        route=_route(), option=_option(), evaluation=low_score, alert=_alert()
+    )
+
+    assert MANUAL_CONFIRMATION_WORKFLOW_URL not in message
+
+
+def test_manual_confirmation_is_clearly_tagged_and_scoped_to_two_passengers() -> None:
+    message = format_manual_confirmation_message(route=_route(), option=_option())
+
+    assert message.startswith("👥 CONFIRMAÇÃO MANUAL · 2 PASSAGEIROS")
+    assert "R$ 3.030,00 total · 2 passageiros" in message
+    assert "Por pessoa: R$ 1.515,00" in message
+    assert "não altera o histórico nem dispara o Deal Score" in message

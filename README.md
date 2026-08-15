@@ -129,6 +129,12 @@ native Telegram integration for external workflow alerts.
 The separate CI workflow runs tests, lint, and formatting checks for pull requests and pushes to
 `main`. Reusable actions are pinned to immutable full commit SHAs.
 
+When an automatic alert scores at least 80 with moderate or high confidence, it links to the
+separate **Confirm fare for 2 passengers** workflow. Use Actions → that workflow → Run workflow,
+enter one origin IATA code, destination, departure date, and return date. The spot check always
+uses two Economy passengers in BRL, sends a clearly tagged Telegram message, and never reads or
+writes the statistical database.
+
 ## PostgreSQL migrations
 
 Fly Club reads its PostgreSQL connection string only from `DATABASE_URL`. After configuring an

@@ -25,6 +25,7 @@ dev = [
 
 [project.scripts]
 flyclub = "flyclub.main:cli"
+flyclub-confirm-two = "flyclub.manual_confirmation:cli"
 flyclub-db-migrate = "flyclub.storage.migrations:cli"
 
 [tool.hatch.build.targets.wheel]
