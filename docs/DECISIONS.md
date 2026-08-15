@@ -132,16 +132,23 @@ Trade-offs: Real configuration must be supplied locally or through GitHub Secret
 
 ## DEC-011 — External dead-man switch
 
-Status: Proposed
+Status: Accepted
 
 Context: In-process health monitoring cannot report that GitHub Actions failed to start at all.
 
-Decision: Consider a zero-cost external heartbeat with Telegram integration after the monitor
-workflow exists.
+Decision: Use one Healthchecks.io check named `Fly Club Monitor` on a Simple three-hour period with
+one-hour grace time. The main GitHub Actions job sends best-effort start, success, and failure
+signals with bounded `curl` requests. Store the base Ping URL only in the
+`HEALTHCHECKS_PING_URL` Repository Secret and use Healthchecks.io's native Telegram integration.
+Do not connect the service to routes, provider-health classification, analysis, Deal Score,
+persistence, or Fly Club alert decisions.
 
-Reason: It closes the silent-failure gap outside the Fly Club process.
+Reason: It closes the silent-failure gap outside the Fly Club process while preserving a narrow,
+low-coupling boundary and the R$ 0 operating target.
 
-Trade-offs: It adds an external service and private ping URL, so user approval is required.
+Trade-offs: It adds an external account and a private endpoint, and GitHub or Healthchecks outages
+can still delay signals. Best-effort pings avoid turning that external dependency into a cause of
+monitor failure.
 
 ## DEC-012 — Deal Score excludes travel urgency
 

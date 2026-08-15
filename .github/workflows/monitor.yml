@@ -18,6 +18,20 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Notify Healthchecks start
+        env:
+          HEALTHCHECKS_PING_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+        shell: bash
+        run: |
+          if [[ -z "${HEALTHCHECKS_PING_URL:-}" ]]; then
+            echo "::warning::HEALTHCHECKS_PING_URL is not configured; external heartbeat disabled"
+            exit 0
+          fi
+
+          curl --fail --silent --show-error --max-time 10 --retry 5 \
+            --output /dev/null "${HEALTHCHECKS_PING_URL}/start" \
+            || echo "::warning::Healthchecks start ping failed; monitor will continue"
+
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -39,10 +53,16 @@ jobs:
           FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          HEALTHCHECKS_PING_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
         shell: bash
         run: |
           missing=0
-          for name in DATABASE_URL FLYCLUB_ROUTES_YAML TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+          for name in \
+            DATABASE_URL \
+            FLYCLUB_ROUTES_YAML \
+            TELEGRAM_BOT_TOKEN \
+            TELEGRAM_CHAT_ID \
+            HEALTHCHECKS_PING_URL; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Required GitHub Secret ${name} is not configured"
               missing=1
@@ -62,3 +82,26 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: flyclub --monitor
+
+      - name: Notify Healthchecks completion
+        if: ${{ always() }}
+        env:
+          HEALTHCHECKS_PING_URL: ${{ secrets.HEALTHCHECKS_PING_URL }}
+          MONITOR_JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          if [[ -z "${HEALTHCHECKS_PING_URL:-}" ]]; then
+            echo "::warning::HEALTHCHECKS_PING_URL is not configured; completion ping skipped"
+            exit 0
+          fi
+
+          ping_url="${HEALTHCHECKS_PING_URL}"
+          ping_state="success"
+          if [[ "${MONITOR_JOB_STATUS}" != "success" ]]; then
+            ping_url="${HEALTHCHECKS_PING_URL}/fail"
+            ping_state="failure"
+          fi
+
+          curl --fail --silent --show-error --max-time 10 --retry 5 \
+            --output /dev/null "${ping_url}" \
+            || echo "::warning::Healthchecks ${ping_state} ping failed; job result is unchanged"

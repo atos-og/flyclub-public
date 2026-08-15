@@ -7,8 +7,8 @@ send low-noise Telegram alerts.
 The project currently validates route configuration, searches Google Flights, persists every
 result in PostgreSQL, evaluates successful prices against prior-only history with deterministic
 statistics, trend, confidence, and Deal Score, and sends consolidated low-noise Telegram alerts.
-The monitor runs all configured routes sequentially with safe aggregate output; scheduled execution
-is the remaining operational step.
+The monitor runs all configured routes sequentially with safe aggregate output in a scheduled
+GitHub Actions workflow.
 
 ## Principles
 
@@ -109,6 +109,19 @@ Configure these repository secrets before enabling or manually dispatching the m
 - `FLYCLUB_ROUTES_YAML` (the complete contents of the private routes YAML)
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
+- `HEALTHCHECKS_PING_URL` (the private base Ping URL for the single external heartbeat check)
+
+The workflow sends a best-effort `/start` ping before its main steps. Its final step runs even after
+an earlier failure and sends either a success ping or `/fail` according to the job result. Pings use
+a short timeout and bounded retries; a Healthchecks.io request failure never changes the monitor's
+result. A missing `HEALTHCHECKS_PING_URL`, however, is treated like any other missing required
+deployment secret.
+
+Healthchecks.io monitors only whether the scheduled process starts and finishes. Provider health,
+empty results, Deal Score, fare decisions, route monitoring, persistence, and Fly Club Telegram
+notifications stay inside the application. Configure one Simple-schedule check named
+`Fly Club Monitor`, with a three-hour period and one-hour grace time, and use Healthchecks.io's
+native Telegram integration for external workflow alerts.
 
 The separate CI workflow runs tests, lint, and formatting checks for pull requests and pushes to
 `main`. Reusable actions are pinned to immutable full commit SHAs.
@@ -153,8 +166,10 @@ ruff check .
 ## Security
 
 Never commit `.env`, `config/routes.yaml`, database connection strings, Telegram credentials, or
-private healthcheck URLs. `.env.example` contains variable names only. Validation errors are
-formatted without echoing configuration values.
+private Healthchecks Ping URLs. `HEALTHCHECKS_PING_URL` belongs only in the ignored local `.env`
+when needed for secure setup and in the GitHub Repository Secret of the same name. `.env.example`
+contains variable names only. Validation errors are formatted without echoing configuration
+values.
 
 The repository will receive a dedicated security and documentation review before it is made
 public.

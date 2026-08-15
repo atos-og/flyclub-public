@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 11 complete — same-run Belo Horizonte versus São Paulo fare context.
+Phase 12 in progress — external GitHub Actions heartbeat implemented; activation pending.
 
 ## Done
 
@@ -111,10 +111,19 @@ Phase 11 complete — same-run Belo Horizonte versus São Paulo fare context.
   invented BH-to-São-Paulo cost.
 - A complete live cycle validated the deferred path with eight successes, eight analyses, eight
   cold-start suppressions, zero fare alerts, zero health alerts, and zero failures.
+- The main monitor workflow now wraps its execution with one Healthchecks.io start and completion
+  heartbeat, reporting `/fail` after fatal job failures through an `always()` final step.
+- External pings are best effort with a ten-second timeout and five retries; their failure never
+  blocks or changes the Fly Club job result.
+- The private Ping URL is required only as the `HEALTHCHECKS_PING_URL` Repository Secret and no
+  Healthchecks library, service, database, API, worker, or route-level check was added.
+- Workflow contract tests verify ping order, bounded best-effort behavior, failure handling, secret
+  sourcing, and absence of a committed Healthchecks endpoint.
 
 ## In progress
 
-- None.
+- Create the single `Fly Club Monitor` check, configure its native Telegram integration, add the
+  private Ping URL as a GitHub Repository Secret, and validate one manual workflow dispatch.
 
 ## Next
 
@@ -123,7 +132,6 @@ Phase 11 complete — same-run Belo Horizonte versus São Paulo fare context.
 
 ## Known issues
 
-- The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
 
@@ -133,11 +141,12 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 143 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 146 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
 - `git diff --check`: passed.
+- Monitor workflow YAML parsing and heartbeat contract tests: passed.
 
 Manual checks:
 

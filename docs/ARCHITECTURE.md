@@ -104,7 +104,22 @@ Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlights
 ```
 
 The monitor runs as a short-lived GitHub Actions job approximately every three hours. It
-start, collect, store, analyze, optionally notify, record health, and exit.
+starts, collects, stores, analyzes, optionally notifies, records health, and exits. The job is
+wrapped by one external Healthchecks.io heartbeat:
+
+```text
+GitHub Actions job starts → Healthchecks /start
+              ↓
+       Fly Club main steps
+              ↓
+      job success? ── yes → Healthchecks success
+              └────── no  → Healthchecks /fail
+```
+
+All three pings are bounded, best-effort `curl` requests. Healthchecks.io is not imported by the
+Python application and does not influence provider health, analysis, persistence, alert decisions,
+or route-level behavior. If the runner never starts, or a started job never reaches its completion
+step, the missing success ping is detected externally after the configured period/grace window.
 
 ## Persistence
 
@@ -136,8 +151,11 @@ data removed afterward.
 - GitHub Actions: the least-privilege, non-overlapping monitor runs manually and at minute 17 every
   three hours; its first production dispatch succeeded. CI separately validates pushes and pull
   requests.
-- External dead-man switch: proposed to detect missing GitHub Actions executions; not accepted as
-  operational until configured by the user.
+- Healthchecks.io: one external dead-man check wraps the main monitor workflow with start,
+  success, and failure signals. Its private base Ping URL is read only from the
+  `HEALTHCHECKS_PING_URL` Repository Secret; native Healthchecks.io Telegram delivery reports
+  workflow availability independently of Fly Club's bot.
 
-Provider health inside the application and run health in PostgreSQL remain required even if an
-external dead-man switch is later enabled.
+Provider health inside the application and run health in PostgreSQL remain authoritative for
+captured business/provider incidents. Healthchecks.io represents only whether the scheduled
+process continues to start and finish.
