@@ -42,7 +42,11 @@ def _route(*, positioning: bool = False) -> RouteDefinition:
     )
 
 
-def _option(*, url: str | None = "https://www.google.com/travel/flights/example") -> FlightOption:
+def _option(
+    *,
+    origin: str = "CNF",
+    url: str | None = "https://www.google.com/travel/flights/example",
+) -> FlightOption:
     return FlightOption(
         price=Decimal("3030"),
         currency="BRL",
@@ -51,7 +55,7 @@ def _option(*, url: str | None = "https://www.google.com/travel/flights/example"
         legs=(
             FlightLeg(
                 journey_index=0,
-                origin_airport="CNF",
+                origin_airport=origin,
                 destination_airport="LIS",
                 departure_time=datetime(2027, 7, 1, tzinfo=UTC),
                 arrival_time=None,
@@ -102,19 +106,32 @@ def test_formatter_builds_short_actionable_explainable_message() -> None:
         route=_route(), option=_option(), evaluation=_evaluation(), alert=_alert()
     )
 
-    assert "OPORTUNIDADE EXCEPCIONAL · 94/100" in message
-    assert "CNF → Lisboa" in message
-    assert "R$ 3.030,00" in message
-    assert "P10: R$ 3.150,00" in message
-    assert "Percentil atual: P6" in message
-    assert "Confiança: alta · 120 observações" in message
-    assert "https://www.google.com/travel/flights/example" in message
+    assert (
+        message
+        == """🔥 OPORTUNIDADE EXCEPCIONAL · 94/100
+
+✈️ CNF → Lisboa
+📅 01/07 a 08/07 · TP · 1 escala
+
+💰 R$ 3.030,00
+↓ R$ 250,00 (7,6%) desde o último alerta
+↓ R$ 730,00 (19,4%) abaixo do preço típico de R$ 3.760,00
+
+📊 Entre os 6% menores preços de 120 observações · confiança alta
+🏆 Menor já registrado: R$ 2.980,00
+🔔 Motivos: novo menor preço registrado; preço estatisticamente excepcional
+
+🔗 Ver oferta: https://www.google.com/travel/flights/example"""
+    )
     assert len(message) < 4096
 
 
 def test_formatter_warns_when_positioning_trip_starts_in_sao_paulo() -> None:
     message = format_alert_message(
-        route=_route(positioning=True), option=_option(), evaluation=_evaluation(), alert=_alert()
+        route=_route(positioning=True),
+        option=_option(origin="GRU"),
+        evaluation=_evaluation(),
+        alert=_alert(),
     )
 
     assert "deslocamento BH → SP não incluído" in message
@@ -123,14 +140,16 @@ def test_formatter_warns_when_positioning_trip_starts_in_sao_paulo() -> None:
 def test_formatter_contextualizes_material_positioning_savings() -> None:
     message = format_alert_message(
         route=_route(positioning=True),
-        option=_option(),
+        option=_option(origin="GRU"),
         evaluation=_evaluation(),
         alert=_alert(),
         origin_comparison=OriginPriceComparison("CNF", Decimal("3724")),
     )
 
-    assert "R$ 694,00 abaixo da melhor opção atual saindo de CNF" in message
-    assert "deslocamento BH → SP não incluído" in message
+    assert "Sair de GRU está R$ 694,00 mais barato que sair de CNF hoje" in message
+    assert "deslocamento até São Paulo não está incluído" in message
+    assert "só compensa se custar menos que R$ 694,00" in message
+    assert "deslocamento BH → SP não incluído" not in message
 
 
 def test_formatter_does_not_invent_missing_url() -> None:
@@ -138,4 +157,4 @@ def test_formatter_does_not_invent_missing_url() -> None:
         route=_route(), option=_option(url=None), evaluation=_evaluation(), alert=_alert()
     )
 
-    assert "Abrir oferta" not in message
+    assert "Ver oferta" not in message

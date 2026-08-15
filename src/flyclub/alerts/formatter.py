@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import ROUND_CEILING, Decimal
 
 from flyclub.alerts.engine import AlertReason, AlertResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
@@ -26,14 +26,35 @@ def _title(evaluation: RoutePriceEvaluation) -> str:
     return f"🔥 OPORTUNIDADE · {score}/100"
 
 
-def _confidence(confidence: ConfidenceLevel, sample_size: int) -> str:
+def _percent(value: Decimal) -> str:
+    return f"{value.quantize(Decimal('0.1')):.1f}".replace(".", ",") + "%"
+
+
+def _confidence_label(confidence: ConfidenceLevel) -> str:
     labels = {
         ConfidenceLevel.INSUFFICIENT: "insuficiente",
-        ConfidenceLevel.LOW: "baixa · provisório",
+        ConfidenceLevel.LOW: "baixa (provisória)",
         ConfidenceLevel.MODERATE: "moderada",
         ConfidenceLevel.HIGH: "alta",
     }
-    return f"🎯 Confiança: {labels[confidence]} · {sample_size} observações"
+    return labels[confidence]
+
+
+def _history_summary(
+    confidence: ConfidenceLevel,
+    sample_size: int,
+    percentile_rank: Decimal | None,
+) -> str:
+    if confidence is ConfidenceLevel.INSUFFICIENT or percentile_rank is None:
+        return f"📊 Histórico inicial: {sample_size} observações"
+    lowest_percent = max(
+        1,
+        min(100, int(percentile_rank.to_integral_value(rounding=ROUND_CEILING))),
+    )
+    return (
+        f"📊 Entre os {lowest_percent}% menores preços de {sample_size} observações "
+        f"· confiança {_confidence_label(confidence)}"
+    )
 
 
 def format_alert_message(
@@ -65,33 +86,44 @@ def format_alert_message(
         _title(evaluation),
         "",
         f"✈️ {actual_origin} → {destination}",
-        f"{route.departure_date:%d/%m} → {route.return_date:%d/%m}",
-        f"{airline_text} · {stops_text}",
+        f"📅 {route.departure_date:%d/%m} a {route.return_date:%d/%m} "
+        f"· {airline_text} · {stops_text}",
         "",
-        _money(option.price, option.currency),
+        f"💰 {_money(option.price, option.currency)}",
     ]
 
-    if alert.drop_percent is not None and alert.drop_percent > 0:
-        lines.append(f"↓ {alert.drop_percent.quantize(Decimal('0.1'))}% desde o último alerta")
+    if (
+        alert.drop_amount is not None
+        and alert.drop_amount > 0
+        and alert.drop_percent is not None
+        and alert.drop_percent > 0
+    ):
+        lines.append(
+            f"↓ {_money(alert.drop_amount, option.currency)} ({_percent(alert.drop_percent)}) "
+            "desde o último alerta"
+        )
     statistics = evaluation.statistics
     if statistics.p50 is not None and option.price < statistics.p50:
-        discount = (statistics.p50 - option.price) * Decimal(100) / statistics.p50
-        lines.append(f"↓ {discount.quantize(Decimal('0.1'))}% vs. mediana histórica")
-
-    if statistics.p10 is not None and statistics.p50 is not None:
-        lines.extend(
-            [
-                "",
-                f"P10: {_money(statistics.p10, option.currency)}",
-                f"P50: {_money(statistics.p50, option.currency)}",
-            ]
+        savings = statistics.p50 - option.price
+        discount = savings * Decimal(100) / statistics.p50
+        lines.append(
+            f"↓ {_money(savings, option.currency)} ({_percent(discount)}) "
+            f"abaixo do preço típico de {_money(statistics.p50, option.currency)}"
         )
+
+    lines.extend(
+        [
+            "",
+            _history_summary(
+                statistics.confidence,
+                statistics.sample_size,
+                statistics.percentile_rank,
+            ),
+        ]
+    )
     if statistics.recorded_low is not None:
         recorded_low = _money(statistics.recorded_low, option.currency)
-        lines.append(f"🏆 Menor registrado no monitoramento: {recorded_low}")
-    if statistics.percentile_rank is not None:
-        lines.append(f"📊 Percentil atual: P{statistics.percentile_rank.quantize(Decimal('1'))}")
-    lines.append(_confidence(statistics.confidence, statistics.sample_size))
+        lines.append(f"🏆 Menor já registrado: {recorded_low}")
 
     reason_labels = {
         AlertReason.PRICE_TARGET: "teto de preço atingido",
@@ -101,20 +133,24 @@ def format_alert_message(
     }
     visible_reasons = [reason_labels[reason] for reason in alert.reasons if reason in reason_labels]
     if visible_reasons:
-        lines.extend(["", "Motivos: " + "; ".join(visible_reasons)])
+        lines.append("🔔 Motivos: " + "; ".join(visible_reasons))
 
+    comparison_shown = False
     if origin_comparison is not None and option.price < origin_comparison.reference_price:
         savings = origin_comparison.reference_price - option.price
+        comparison_shown = True
         lines.extend(
             [
                 "",
-                f"💰 {_money(savings, option.currency)} abaixo da melhor opção atual "
-                f"saindo de {origin_comparison.reference_origin}.",
+                f"📍 Sair de {actual_origin} está {_money(savings, option.currency)} mais barato "
+                f"que sair de {origin_comparison.reference_origin} hoje.",
+                f"O deslocamento até {route.origin_label} não está incluído; só compensa se "
+                f"custar menos que {_money(savings, option.currency)}.",
             ]
         )
-    if route.positioning_notice:
+    if route.positioning_notice and not comparison_shown:
         lines.extend(["", f"⚠️ {route.positioning_notice}"])
     url = option.booking_url or option.google_flights_url
     if url:
-        lines.extend(["", f"🔗 Abrir oferta: {url}"])
+        lines.extend(["", f"🔗 Ver oferta: {url}"])
     return "\n".join(lines)

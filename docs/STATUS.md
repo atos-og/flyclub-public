@@ -77,8 +77,9 @@ Phase 12 complete — external GitHub Actions heartbeat operational.
 - Low-confidence exceptional scores require independent corroboration before sending.
 - Significant drops require both configured absolute and percentage thresholds.
 - Cooldown suppresses repetition unless the fare falls significantly again.
-- The plain-text formatter includes actionable route, price, statistics, confidence, positioning
-  warning, and only a validated provider URL when one exists.
+- The compact plain-text formatter shows route, price, monetary and percentage savings, historical
+  position in plain language, recorded low, alert reasons, actionable positioning economics, and
+  only a validated provider URL when one exists.
 - A minimal sanitized Telegram Bot API client is implemented with no additional dependency and no
   credential values in code or logs.
 - The private Telegram bot and chat were configured through the ignored `.env`, and one controlled
