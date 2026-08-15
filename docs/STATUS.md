@@ -254,6 +254,8 @@ Manual checks:
   review is 2026-09-14.
 - The private routes Secret was re-uploaded as raw UTF-8 after Windows PowerShell 5.1 transcoding
   was found and diagnosed; the following GitHub Actions run parsed it successfully.
+- First flexible-date production shard: 24 independent routes completed in 4m58s; 22 were
+  successful/analyzed, two were empty, none failed, and all 22 alert decisions were suppressed.
 - Personal travel dates that had been reused as inert manual-confirmation test fixtures were
   replaced with synthetic dates and airports in the current tree. Historical commit sanitation is
   pending an explicit history-rewrite decision while the repository remains private.
