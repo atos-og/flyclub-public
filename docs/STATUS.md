@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 6 in progress — prior-only price statistics and confidence foundations.
+Phase 7 in progress — deterministic Deal Score and separated price-movement signals.
 
 ## Done
 
@@ -57,21 +57,28 @@ Phase 6 in progress — prior-only price statistics and confidence foundations.
   cold-start state, and configurable confidence.
 - Percentile rank gives tied prices half weight, and the current price remains outside its own
   historical baseline.
+- PR #6 was validated and squash-merged into `main`.
+- Deal Score weights are configurable and total 100: percentile 40, median discount 25,
+  recorded-low proximity 15, recent drop 10, and trend 10.
+- Days until departure is excluded from Deal Score and reserved for a future Buy Signal/Forecast.
+- Recent drop is a typed point-in-time comparison against 24 hours or the last alert; trend uses
+  two prior-only multi-observation median windows so the current drop is not counted twice.
+- Scores require at least 12 prior observations; low-confidence results are marked provisional.
+- Every score exposes its component points, maximums, metrics, confidence, and classification.
 
 ## In progress
 
-- Phase 6 statistics changes are on `feat/analysis-statistics`, pending publication and review.
+- Phase 7 Deal Score changes are on `agent/deal-score`, pending publication and review.
 
 ## Next
 
-- Publish and integrate the statistics foundation.
-- Agree the deterministic Deal Score formula and connect statistics to persisted monitor results.
+- Publish and integrate the Deal Score foundation.
+- Connect statistics, recent-drop references, trend, and Deal Score to persisted monitor results.
 
 ## Known issues
 
-- Statistics are not connected to persisted monitor results yet.
-- No Telegram delivery, GitHub Actions workflow, Deal Score, alert engine, or alert deduplication
-  exists yet.
+- Statistics and Deal Score are not connected to persisted monitor results yet.
+- No Telegram delivery, GitHub Actions workflow, alert engine, or alert deduplication exists yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -82,7 +89,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 66 passed, 92% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 87 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.

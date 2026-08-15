@@ -108,10 +108,25 @@ class MonitorConfig(StrictModel):
     retry_base_delay_seconds: int = Field(default=2, ge=1, le=30)
 
 
+class DealScoreWeightsConfig(StrictModel):
+    percentile: int = Field(default=40, ge=0, le=100)
+    median_discount: int = Field(default=25, ge=0, le=100)
+    recorded_low_proximity: int = Field(default=15, ge=0, le=100)
+    recent_drop: int = Field(default=10, ge=0, le=100)
+    trend: int = Field(default=10, ge=0, le=100)
+
+    @model_validator(mode="after")
+    def validate_total(self) -> DealScoreWeightsConfig:
+        if sum(self.model_dump().values()) != 100:
+            raise ValueError("Deal Score weights must total 100")
+        return self
+
+
 class AnalysisConfig(StrictModel):
     min_score_samples: int = Field(default=12, ge=2)
     low_confidence_max_samples: int = Field(default=30, ge=2)
     moderate_confidence_max_samples: int = Field(default=100, ge=3)
+    deal_score_weights: DealScoreWeightsConfig = DealScoreWeightsConfig()
 
     @model_validator(mode="after")
     def validate_thresholds(self) -> AnalysisConfig:

@@ -51,6 +51,11 @@ database writes.
 - `flyclub.analysis.statistics`: provides pure `Decimal` P10/P50/P90, percentile rank, recorded-low,
   sample-size, cold-start, and confidence calculations over a prior-only historical baseline. It is
   implemented and tested but not connected to monitor persistence yet.
+- `flyclub.analysis.trend`: keeps a point-in-time 24-hour/last-alert drop distinct from a prior-only
+  multi-observation trend based on adjacent historical median windows.
+- `flyclub.analysis.deal_score`: calculates an explainable 0–100 score from percentile, median
+  discount, recorded-low proximity, recent drop, and trend. Low-confidence scores are explicitly
+  provisional, and travel urgency is excluded.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
 
@@ -65,8 +70,9 @@ database writes.
 
 ## V1 flow
 
-Collection through PostgreSQL and the pure statistics foundation are implemented. Statistical
-orchestration and components after it remain planned and must not be treated as operational:
+Collection through PostgreSQL and the pure statistics, trend, and Deal Score foundations are
+implemented. Their orchestration and components after them remain planned and must not be treated
+as operational:
 
 ```text
 Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlightsProvider / fli

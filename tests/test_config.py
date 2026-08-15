@@ -15,6 +15,8 @@ def test_public_example_is_valid() -> None:
     assert config.origins["from_bh"].airports == ("CNF",)
     assert config.origins["from_sao_paulo"].role is OriginRole.POSITIONING
     assert len(config.destinations) == 3
+    assert config.analysis.deal_score_weights.percentile == 40
+    assert sum(config.analysis.deal_score_weights.model_dump().values()) == 100
 
 
 def test_environment_yaml_takes_precedence_over_file(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -48,4 +50,13 @@ def test_duplicate_destination_is_rejected() -> None:
     content = EXAMPLE_PATH.read_text(encoding="utf-8").replace("  - code: MAD", "  - code: LIS")
 
     with pytest.raises(ConfigError, match="duplicate IATA codes"):
+        load_config_text(content)
+
+
+def test_deal_score_weights_must_total_one_hundred() -> None:
+    content = EXAMPLE_PATH.read_text(encoding="utf-8").replace(
+        "    percentile: 40", "    percentile: 39"
+    )
+
+    with pytest.raises(ConfigError, match="weights must total 100"):
         load_config_text(content)

@@ -142,3 +142,25 @@ workflow exists.
 Reason: It closes the silent-failure gap outside the Fly Club process.
 
 Trade-offs: It adds an external service and private ping URL, so user approval is required.
+
+## DEC-012 — Deal Score excludes travel urgency
+
+Status: Accepted
+
+Context: Days until departure may affect purchase urgency, but do not make an otherwise median fare
+more exceptional. Recent drop and trend can also double-count the same movement if both use the
+current observation.
+
+Decision: Score only price quality with configurable weights: percentile 40, discount versus P50
+25, proximity to the recorded low 15, objective recent drop 10, and prior-history trend 10. Keep
+days until departure outside Deal Score for a future Buy Signal/Forecast. Calculate a provisional,
+low-confidence score from 12–30 prior observations, moderate confidence from 31–100, and high
+confidence above 100. Recent drop compares the current price with a typed 24-hour or last-alert
+reference; trend compares two multi-observation historical median windows excluding the current
+price.
+
+Reason: This keeps the score focused, deterministic, explainable, and prevents urgency or one
+current movement from being rewarded twice.
+
+Trade-offs: Low-sample scores remain useful but must be displayed and handled as provisional. A
+separate future signal will be needed to express purchase timing or forecast urgency.

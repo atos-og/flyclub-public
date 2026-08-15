@@ -46,6 +46,12 @@ analysis:
   min_score_samples: 12
   low_confidence_max_samples: 30
   moderate_confidence_max_samples: 100
+  deal_score_weights:
+    percentile: 40
+    median_discount: 25
+    recorded_low_proximity: 15
+    recent_drop: 10
+    trend: 10
 
 alerts:
   exceptional_score: 90
