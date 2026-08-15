@@ -48,7 +48,8 @@ database writes.
   outcome models. Money is represented by `Decimal`.
 - `flyclub.providers.base`: defines the `FlightProvider` protocol.
 - `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
-  classifies errors, normalizes results, and validates deep links.
+  classifies errors, reads the documented outbound full-round-trip price, warns once per search
+  when the return journey differs by more than 2%, normalizes results, and validates deep links.
 - `flyclub.monitor`: runs provider searches sequentially, records every outcome, derives the run
   status, analyzes successful observations, defers fare decisions until same-run HOME comparisons
   are available, coordinates alerts, updates aggregate provider health, and attempts to close

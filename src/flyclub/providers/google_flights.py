@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import time
 from collections.abc import Callable
@@ -69,6 +70,9 @@ _STOPS_MAP = {
     MaxStops.TWO_OR_FEWER_STOPS: FliMaxStops.TWO_OR_FEWER_STOPS,
 }
 
+_LOGGER = logging.getLogger(__name__)
+_ROUND_TRIP_PRICE_WARNING_THRESHOLD = Decimal("2")
+
 
 class GoogleFlightsProvider:
     """Translate Fly Club routes to and from the unofficial `fli` API."""
@@ -95,6 +99,7 @@ class GoogleFlightsProvider:
         self._country = country
         self._client_factory = client_factory
         self._sleeper = sleeper
+        self._round_trip_divergence_warned = False
 
     def search(self, route: RouteDefinition, *, max_results: int) -> SearchOutcome:
         if max_results < 1:
@@ -155,6 +160,7 @@ class GoogleFlightsProvider:
         if not raw_results:
             return SearchOutcome(provider=self.name, status=SearchStatus.EMPTY)
 
+        self._round_trip_divergence_warned = False
         options: list[FlightOption] = []
         for raw_result in raw_results:
             try:
@@ -211,10 +217,23 @@ class GoogleFlightsProvider:
         if not journeys:
             return None
 
-        priced_journey = journeys[-1]
+        priced_journey = journeys[0]
         price = self._decimal_price(getattr(priced_journey, "price", None))
         if price is None:
             return None
+
+        final_price = self._decimal_price(getattr(journeys[-1], "price", None))
+        if final_price is not None:
+            difference_percent = abs(price - final_price) / price * Decimal("100")
+            if (
+                difference_percent > _ROUND_TRIP_PRICE_WARNING_THRESHOLD
+                and not self._round_trip_divergence_warned
+            ):
+                _LOGGER.warning(
+                    "Round-trip journey prices diverged by more than 2%; "
+                    "the outbound total remains authoritative"
+                )
+                self._round_trip_divergence_warned = True
 
         legs: list[FlightLeg] = []
         for journey_index, journey in enumerate(journeys):

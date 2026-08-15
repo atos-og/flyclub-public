@@ -17,6 +17,12 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
 - Persistent guidance, architecture, decision, and operational status documents created.
 - Foundation and persistent guidance committed and pushed to private `main`.
 - `fli` 0.10.0 source pinned to a reviewed immutable Git commit.
+- The `fli` adapter now uses the documented outbound journey price as the complete round-trip
+  total and emits at most one sanitized warning per search when the final journey differs by more
+  than 2%.
+- A non-persistent diagnostic sampled 30 real provider requests and 716 comparable options: 170
+  options diverged, with 0.7968% mean absolute difference and a 38.6118% maximum, confirming that
+  the previous final-journey field was not a safe round-trip total.
 - `GoogleFlightsProvider` builds round-trip searches with explicit airport groups.
 - Provider results normalize to `Decimal` prices and provider-neutral legs/options.
 - Empty, invalid, temporary failure, provider format change, and success outcomes are distinct.
@@ -210,3 +216,5 @@ Manual checks:
   authenticated account.
 - Passenger-scoped production validation: eight new isolated series received one successful
   observation each, with provider health remaining `HEALTHY` and no notification sent.
+- Round-trip price diagnostic: 30 live requests completed without persistence; 716 option pairs
+  compared, 170 divergences, 0.7968% mean absolute difference, and 38.6118% maximum difference.

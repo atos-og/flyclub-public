@@ -116,7 +116,7 @@ class FakeClient:
         return self.url
 
 
-def test_normalizes_round_trip_without_leaking_fli_models() -> None:
+def test_normalizes_round_trip_using_outbound_total_without_leaking_fli_models() -> None:
     client = FakeClient(iter([[round_trip()]]))
     provider = GoogleFlightsProvider(client_factory=lambda: client)
 
@@ -125,7 +125,7 @@ def test_normalizes_round_trip_without_leaking_fli_models() -> None:
     assert outcome.status is SearchStatus.SUCCESS
     assert len(outcome.options) == 1
     option = outcome.options[0]
-    assert option.price == Decimal("3030.0")
+    assert option.price == Decimal("3200.0")
     assert option.currency == "BRL"
     assert option.stops == 1
     assert option.duration_minutes == 1200
@@ -139,6 +139,37 @@ def test_normalizes_round_trip_without_leaking_fli_models() -> None:
     assert native_filters.flight_segments[0].departure_airport == [[Airport.CNF, 0]]
     assert native_filters.flight_segments[1].arrival_airport == [[Airport.CNF, 0]]
     assert client.calls[0]["currency"] == "BRL"
+
+
+def test_warns_when_round_trip_journey_prices_diverge_over_two_percent(caplog: Any) -> None:
+    client = FakeClient(iter([[round_trip(return_price=3000.0)]]))
+    provider = GoogleFlightsProvider(client_factory=lambda: client)
+
+    outcome = provider.search(make_route(), max_results=5)
+
+    assert outcome.status is SearchStatus.SUCCESS
+    assert outcome.options[0].price == Decimal("3200.0")
+    assert "journey prices diverged by more than 2%" in caplog.text
+
+
+def test_does_not_warn_at_two_percent_round_trip_difference(caplog: Any) -> None:
+    client = FakeClient(iter([[round_trip(return_price=3136.0)]]))
+    provider = GoogleFlightsProvider(client_factory=lambda: client)
+
+    outcome = provider.search(make_route(), max_results=5)
+
+    assert outcome.status is SearchStatus.SUCCESS
+    assert "journey prices diverged" not in caplog.text
+
+
+def test_warns_only_once_per_search_when_multiple_results_diverge(caplog: Any) -> None:
+    client = FakeClient(iter([[round_trip(return_price=3000.0), round_trip(return_price=2800.0)]]))
+    provider = GoogleFlightsProvider(client_factory=lambda: client)
+
+    outcome = provider.search(make_route(), max_results=5)
+
+    assert outcome.status is SearchStatus.SUCCESS
+    assert caplog.text.count("journey prices diverged") == 1
 
 
 def test_explicit_sao_paulo_airports_are_sent_to_fli() -> None:
@@ -212,7 +243,9 @@ def test_parse_error_is_reported_as_provider_change_without_retry() -> None:
 
 
 def test_result_without_total_price_is_not_invented() -> None:
-    client = FakeClient(iter([[round_trip(return_price=None)]]))
+    outbound, inbound = round_trip()
+    outbound.price = None
+    client = FakeClient(iter([[(outbound, inbound)]]))
     provider = GoogleFlightsProvider(client_factory=lambda: client)
 
     outcome = provider.search(make_route(), max_results=5)
