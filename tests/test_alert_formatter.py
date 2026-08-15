@@ -217,3 +217,13 @@ def test_flexible_date_alert_is_visually_distinct() -> None:
     )
 
     assert message.startswith("🗓️ DATA FLEXÍVEL EXCEPCIONAL")
+
+
+def test_discovery_alert_is_visually_distinct() -> None:
+    discovery = replace(_route(), kind=RouteKind.DISCOVERY)
+
+    message = format_alert_message(
+        route=discovery, option=_option(), evaluation=_evaluation(), alert=_alert()
+    )
+
+    assert message.startswith("🔎 DESCOBERTA EXCEPCIONAL")

@@ -96,6 +96,12 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   Each pair receives one daily observation in an isolated `FLEXIBLE` route key, reuses
   persistence/analysis/alerts, omits core provider-health updates, and prefixes Telegram messages
   with `🗓️ DATA FLEXÍVEL`.
+- Thirty optional discovery routes now cover 15 curated destinations from BH and São Paulo with
+  isolated `DISCOVERY` histories, 60-point Americas/Brazil and 90-point Europe thresholds, and
+  `🔎 DESCOBERTA` messages. The workflow is manual-only pending explicit schedule-cost approval.
+  A proposed three-runs-per-week schedule would add about 13 runs/month; using the observed route
+  timings, the conservative estimate is 6–12 minutes/run and 78–156 Actions minutes/month, plus
+  390 route checks and up to 1,950 snapshots/month.
 - A private passenger-count change generated new comparable route keys while retaining the prior
   series separately; no historical prices crossed the comparability boundary.
 - The first production dispatch after that change completed in 1m54s with eight successful and

@@ -106,6 +106,31 @@ class DestinationConfig(StrictModel):
         return _validate_iata(value)
 
 
+class DiscoveryDestinationConfig(StrictModel):
+    code: str
+    name: str | None = Field(default=None, max_length=80)
+    minimum_deal_score: int = Field(default=60, ge=60, le=100)
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, value: Any) -> Any:
+        return _validate_iata(value)
+
+
+class DiscoveryConfig(StrictModel):
+    origin_groups: tuple[str, ...] = Field(min_length=1)
+    destinations: tuple[DiscoveryDestinationConfig, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_unique_values(self) -> DiscoveryConfig:
+        if len(set(self.origin_groups)) != len(self.origin_groups):
+            raise ValueError("discovery origin groups must not contain duplicates")
+        codes = [destination.code for destination in self.destinations]
+        if len(set(codes)) != len(codes):
+            raise ValueError("discovery destinations must not contain duplicate IATA codes")
+        return self
+
+
 class MonitorConfig(StrictModel):
     max_results_per_route: int = Field(default=5, ge=1, le=30)
     retry_attempts: int = Field(default=3, ge=1, le=5)
@@ -157,6 +182,7 @@ class FlyClubConfig(StrictModel):
     trip: TripConfig
     origins: dict[str, OriginGroupConfig] = Field(min_length=1)
     destinations: tuple[DestinationConfig, ...] = Field(min_length=1)
+    discovery: DiscoveryConfig | None = None
     monitor: MonitorConfig = MonitorConfig()
     analysis: AnalysisConfig = AnalysisConfig()
     alerts: AlertConfig = AlertConfig()
@@ -177,6 +203,10 @@ class FlyClubConfig(StrictModel):
         codes = [destination.code for destination in self.destinations]
         if len(set(codes)) != len(codes):
             raise ValueError("destinations must not contain duplicate IATA codes")
+        if self.discovery is not None:
+            missing = set(self.discovery.origin_groups).difference(self.origins)
+            if missing:
+                raise ValueError("discovery references an unknown origin group")
         return self
 
 

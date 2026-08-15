@@ -61,6 +61,7 @@ class RouteDefinition:
     max_stops: MaxStops
     alert_price: Decimal | None
     positioning_cost_estimate: Decimal | None = None
+    minimum_deal_score: int | None = None
     kind: RouteKind = RouteKind.MAIN
 
 

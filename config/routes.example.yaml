@@ -38,6 +38,28 @@ destinations:
     name: Miami
     alert_price: 2500
 
+# Optional independent opportunity radar. It is not part of the main 90-minute monitor.
+discovery:
+  origin_groups:
+    - from_bh
+    - from_sao_paulo
+  destinations:
+    - {code: SFO, name: San Francisco, minimum_deal_score: 60}
+    - {code: SLZ, name: São Luís, minimum_deal_score: 60}
+    - {code: JPA, name: João Pessoa, minimum_deal_score: 60}
+    - {code: PMW, name: Palmas / Jalapão, minimum_deal_score: 60}
+    - {code: EZE, name: Buenos Aires, minimum_deal_score: 60}
+    - {code: SCL, name: Santiago, minimum_deal_score: 60}
+    - {code: BOG, name: Bogotá, minimum_deal_score: 60}
+    - {code: CTG, name: Cartagena, minimum_deal_score: 60}
+    - {code: LIM, name: Lima, minimum_deal_score: 60}
+    - {code: CUZ, name: Cusco, minimum_deal_score: 60}
+    - {code: MVD, name: Montevidéu, minimum_deal_score: 60}
+    - {code: PUJ, name: Punta Cana, minimum_deal_score: 60}
+    - {code: LIS, name: Lisboa, minimum_deal_score: 90}
+    - {code: MAD, name: Madri, minimum_deal_score: 90}
+    - {code: CDG, name: Paris, minimum_deal_score: 90}
+
 monitor:
   max_results_per_route: 5
   retry_attempts: 3

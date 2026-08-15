@@ -124,3 +124,42 @@ def plan_flexible_date_routes(
                 )
             )
     return tuple(routes)
+
+
+def plan_discovery_routes(config: FlyClubConfig) -> tuple[RouteDefinition, ...]:
+    """Plan opt-in discovery markets without sharing main-route history."""
+
+    if config.discovery is None:
+        return ()
+    routes: list[RouteDefinition] = []
+    for origin_group in config.discovery.origin_groups:
+        origin = config.origins[origin_group]
+        for destination in config.discovery.destinations:
+            routes.append(
+                RouteDefinition(
+                    key=_route_key(
+                        config,
+                        origin_group,
+                        destination.code,
+                        kind=RouteKind.DISCOVERY,
+                    ),
+                    origin_group=origin_group,
+                    origin_label=origin.label,
+                    origin_role=origin.role,
+                    origin_airports=origin.airports,
+                    positioning_notice=origin.notice,
+                    destination=destination.code,
+                    destination_name=destination.name,
+                    departure_date=config.trip.departure_date,
+                    return_date=config.trip.return_date,
+                    passengers=config.trip.passengers,
+                    cabin=config.trip.cabin,
+                    currency=config.trip.currency,
+                    max_stops=config.trip.max_stops,
+                    alert_price=None,
+                    positioning_cost_estimate=origin.positioning_cost_estimate,
+                    minimum_deal_score=destination.minimum_deal_score,
+                    kind=RouteKind.DISCOVERY,
+                )
+            )
+    return tuple(routes)

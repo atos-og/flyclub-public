@@ -88,6 +88,8 @@ database writes.
   two-passenger search, and sends a clearly tagged Telegram result without persistence or analysis.
 - `flyclub.flexible_dates`: runs the normal persisted analysis/alert pipeline over isolated shifted
   fixed-duration routes without changing core provider-health notification state.
+- `flyclub.discovery`: runs an optional manual-only market scan with isolated `DISCOVERY` keys and
+  per-destination score thresholds, reusing persistence and alerts without provider-health updates.
 
 ## Component boundaries
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
@@ -235,3 +236,47 @@ def test_positioning_alert_is_suppressed_when_estimated_net_savings_is_too_low()
     assert result.alert.decision is AlertDecision.SUPPRESS
     assert repository.recorded[0]["reason_codes"][-1] == "POSITIONING_COST_NOT_RECOVERED"
     assert telegram.messages == []
+
+
+def test_route_specific_discovery_score_can_trigger_at_sixty() -> None:
+    repository = FakeRepository()
+    telegram = FakeTelegram()
+    coordinator = AlertCoordinator(
+        repository,  # type: ignore[arg-type]
+        telegram,  # type: ignore[arg-type]
+        AlertPolicy(exceptional_score=90),
+        formatter=lambda **_kwargs: "discovery alert",
+    )
+    route = replace(_route(target=None), minimum_deal_score=60)
+    evaluation = _evaluation()
+    evaluation = RoutePriceEvaluation(
+        statistics=PriceStatistics(
+            31,
+            ConfidenceLevel.MODERATE,
+            Decimal("70"),
+            Decimal("100"),
+            Decimal("130"),
+            Decimal("20"),
+            Decimal("70"),
+        ),
+        trend=evaluation.trend,
+        recent_drop=None,
+        deal_score=DealScoreResult(
+            60,
+            DealClassification.INTERESTING,
+            ConfidenceLevel.MODERATE,
+            False,
+            (),
+        ),
+    )
+
+    result = coordinator.handle(
+        route=route,
+        current_check_id=uuid4(),
+        current_option=FlightOption(Decimal("80"), "BRL", ()),
+        current_at=NOW,
+        evaluation=evaluation,
+    )
+
+    assert result.alert.decision is AlertDecision.SEND
+    assert telegram.messages == ["discovery alert"]

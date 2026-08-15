@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -92,13 +92,18 @@ class AlertCoordinator:
         origin_comparison: OriginPriceComparison | None = None,
     ) -> AlertHandlingResult:
         last_alert = self._repository.last_sent_alert_price(route_key=route.key)
+        selected_policy = (
+            replace(self._policy, exceptional_score=route.minimum_deal_score)
+            if route.minimum_deal_score is not None
+            else self._policy
+        )
         alert = decide_alert(
             current_price=current_option.price,
             current_at=current_at,
             evaluation=evaluation,
             alert_price=route.alert_price,
             last_sent_alert=last_alert,
-            policy=self._policy,
+            policy=selected_policy,
         )
         actionable_comparison = origin_comparison
         if (

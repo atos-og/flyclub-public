@@ -20,6 +20,8 @@ def test_public_example_is_valid() -> None:
     assert config.health.problem_alert_after_runs == 3
     assert config.alerts.positioning_context_min_savings == 100
     assert config.origins["from_sao_paulo"].positioning_cost_estimate == 650
+    assert config.discovery is not None
+    assert len(config.discovery.destinations) == 15
 
 
 def test_environment_yaml_takes_precedence_over_file(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,4 +82,13 @@ def test_deployment_schedule_is_not_accepted_as_route_configuration() -> None:
     )
 
     with pytest.raises(ConfigError, match="Extra inputs are not permitted"):
+        load_config_text(content)
+
+
+def test_discovery_rejects_unknown_origin_group() -> None:
+    content = EXAMPLE_PATH.read_text(encoding="utf-8").replace(
+        "    - from_bh\n", "    - unknown_market\n", 1
+    )
+
+    with pytest.raises(ConfigError, match="unknown origin group"):
         load_config_text(content)

@@ -4,7 +4,12 @@ from pathlib import Path
 
 from flyclub.config import FlyClubConfig, load_config
 from flyclub.models import OriginRole, RouteKind
-from flyclub.route_planner import config_fingerprint, plan_flexible_date_routes, plan_routes
+from flyclub.route_planner import (
+    config_fingerprint,
+    plan_discovery_routes,
+    plan_flexible_date_routes,
+    plan_routes,
+)
 
 EXAMPLE_PATH = Path("config/routes.example.yaml")
 
@@ -75,3 +80,15 @@ def test_flexible_date_offsets_reject_zero_and_duplicates() -> None:
             assert "unique, non-zero, and non-empty" in str(error)
         else:
             raise AssertionError("Invalid flexible offsets should fail")
+
+
+def test_discovery_routes_are_independent_and_keep_per_destination_thresholds() -> None:
+    config = load_config(EXAMPLE_PATH)
+    main = plan_routes(config)
+    discovery = plan_discovery_routes(config)
+
+    assert len(discovery) == 30
+    assert all(route.kind is RouteKind.DISCOVERY for route in discovery)
+    assert not {route.key for route in main}.intersection(route.key for route in discovery)
+    assert {route.minimum_deal_score for route in discovery if route.destination == "SFO"} == {60}
+    assert {route.minimum_deal_score for route in discovery if route.destination == "LIS"} == {90}
