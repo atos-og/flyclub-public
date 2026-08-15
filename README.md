@@ -91,6 +91,23 @@ A persisted cycle also records one idempotent alert decision per successful rout
 is never sent again. Telegram credentials are read only from `TELEGRAM_BOT_TOKEN` and
 `TELEGRAM_CHAT_ID`.
 
+## GitHub Actions
+
+The private monitor workflow runs at minute 17 every three hours (UTC) and also supports manual
+dispatch. GitHub schedules are approximate and can be delayed. The workflow allows only read access
+to repository contents, prevents overlapping monitor runs, applies pending migrations, and then
+runs the persisted monitor without printing private route details.
+
+Configure these repository secrets before enabling or manually dispatching the monitor:
+
+- `DATABASE_URL`
+- `FLYCLUB_ROUTES_YAML` (the complete contents of the private routes YAML)
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+
+The separate CI workflow runs tests, lint, and formatting checks for pull requests and pushes to
+`main`. Reusable actions are pinned to immutable full commit SHAs.
+
 ## PostgreSQL migrations
 
 Fly Club reads its PostgreSQL connection string only from `DATABASE_URL`. After configuring an
@@ -134,7 +151,7 @@ formatted without echoing configuration values.
 The repository will receive a dedicated security and documentation review before it is made
 public.
 
-## Planned V1
+## V1 scope
 
 The V1 uses Python, the `fli` Google Flights provider, PostgreSQL on Supabase, GitHub Actions,
 Telegram, and pytest. It will not include a web interface, machine learning, or browser automation.

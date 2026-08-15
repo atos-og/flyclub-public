@@ -126,7 +126,8 @@ PostgreSQL project with synthetic data removed afterward.
 - Supabase PostgreSQL through `psycopg`: provisioned, migrated, and validated with idempotent
   migrations and complete synthetic persistence/cleanup smoke tests.
 - Telegram Bot API: configured, live-tested, and connected to idempotent monitor delivery.
-- GitHub Actions: accepted scheduler and runner, workflow not implemented yet.
+- GitHub Actions: a least-privilege, non-overlapping monitor workflow is defined for manual dispatch
+  and minute 17 every three hours; CI separately validates pushes and pull requests.
 - External dead-man switch: proposed to detect missing GitHub Actions executions; not accepted as
   operational until configured by the user.
 

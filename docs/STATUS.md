@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 8 complete — persisted, idempotent Telegram alert delivery is operational locally.
+Phase 9 in progress — private GitHub Actions scheduling and CI.
 
 ## Done
 
@@ -90,20 +90,24 @@ Phase 8 complete — persisted, idempotent Telegram alert delivery is operationa
   and suppressed counters.
 - A complete live cycle collected and analyzed eight routes, persisted eight suppressions, and sent
   no itinerary alert during cold start.
+- Least-privilege CI and monitor workflows use Python 3.12 and immutable full-SHA official actions.
+- The monitor schedule avoids the top of the hour, prevents overlapping runs, validates required
+  secret presence, applies migrations, and supports manual dispatch.
 
 ## In progress
 
-- Automatic alert persistence and delivery are on `agent/telegram-delivery`, pending publication
-  and review.
+- GitHub Actions workflows are on `agent/github-actions`, pending publication, secret configuration,
+  and one manual production dispatch.
 
 ## Next
 
-- Publish and integrate automatic Telegram delivery.
-- Add the private GitHub Actions monitor workflow and configure its GitHub Secrets.
+- Publish and integrate the GitHub Actions workflows.
+- Configure the four private repository secrets and validate one manual production dispatch.
 
 ## Known issues
 
-- No GitHub Actions workflow exists yet, so monitoring still depends on an explicit local run.
+- Monitoring remains dependent on explicit local runs until the workflow is merged, its secrets are
+  configured, and its first manual dispatch succeeds.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
