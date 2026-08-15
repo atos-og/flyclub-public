@@ -48,9 +48,9 @@ def test_manual_confirmation_queries_two_passengers_and_sends_without_storage(
     result = cli(
         [
             "--origin",
-            "cnf",
+            "bos",
             "--destination",
-            "scl",
+            "yul",
             "--departure-date",
             "2030-03-10",
             "--return-date",
@@ -61,8 +61,8 @@ def test_manual_confirmation_queries_two_passengers_and_sends_without_storage(
     route = FakeProvider.routes[0]
     assert result == 0
     assert route.passengers == 2
-    assert route.origin_airports == ("CNF",)
-    assert route.destination == "SCL"
+    assert route.origin_airports == ("BOS",)
+    assert route.destination == "YUL"
     assert FakeTelegram.messages[0].startswith("👥 CONFIRMAÇÃO MANUAL")
     assert "no history was persisted" in capsys.readouterr().out
 
@@ -77,9 +77,9 @@ def test_manual_confirmation_rejects_invalid_date_order_before_network(
     result = cli(
         [
             "--origin",
-            "CNF",
+            "BOS",
             "--destination",
-            "SCL",
+            "YUL",
             "--departure-date",
             "2030-03-17",
             "--return-date",

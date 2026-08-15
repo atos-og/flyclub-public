@@ -116,6 +116,16 @@ Configure these repository secrets before enabling or manually dispatching the m
 - `TELEGRAM_CHAT_ID`
 - `HEALTHCHECKS_PING_URL` (the private base Ping URL for the single external heartbeat check)
 
+On Windows PowerShell 5.1, upload the private YAML as raw UTF-8 bytes with input redirection:
+
+```powershell
+cmd.exe /d /c "gh secret set FLYCLUB_ROUTES_YAML --repo OWNER/flyclub < config\routes.yaml"
+```
+
+Replace `OWNER` with the repository owner. Do not use `Get-Content ... | gh secret set` in Windows
+PowerShell 5.1: its native-command pipeline can transcode the YAML to UTF-16, which is rejected by
+the Linux workflow. The command above does not print or commit the private configuration.
+
 The workflow sends a best-effort `/start` ping before its main steps. Its final step runs even after
 an earlier failure and sends either a success ping or `/fail` according to the job result. Pings use
 a short timeout and bounded retries; a Healthchecks.io request failure never changes the monitor's

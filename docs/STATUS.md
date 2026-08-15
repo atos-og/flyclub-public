@@ -194,7 +194,8 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 149 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 177 passed, 91% total coverage, including the
+  Deal Score v2 isolation regression.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -245,3 +246,14 @@ Manual checks:
   observation each, with provider health remaining `HEALTHY` and no notification sent.
 - Round-trip price diagnostic: 30 live requests completed without persistence; 716 option pairs
   compared, 170 divergences, 0.7968% mean absolute difference, and 38.6118% maximum difference.
+- Live migration 003: one migration applied; the workflow immediately confirmed zero pending
+  migrations.
+- Deal Score v2 production shadow validation: one main workflow run completed in 1m57s with seven
+  successful/analyzed routes, one empty route, zero failures, seven suppressed alerts, and seven
+  isolated `daily-median-v2` rows. The first row was recorded on 2026-08-15; the earliest 30-day
+  review is 2026-09-14.
+- The private routes Secret was re-uploaded as raw UTF-8 after Windows PowerShell 5.1 transcoding
+  was found and diagnosed; the following GitHub Actions run parsed it successfully.
+- Personal travel dates that had been reused as inert manual-confirmation test fixtures were
+  replaced with synthetic dates and airports in the current tree. Historical commit sanitation is
+  pending an explicit history-rewrite decision while the repository remains private.

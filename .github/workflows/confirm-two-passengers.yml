@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       destination:
-        description: Destination IATA code, for example SCL
+        description: Destination IATA code, for example YUL
         required: true
         type: string
       departure_date:
