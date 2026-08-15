@@ -128,8 +128,10 @@ Phase 13 complete — 90-minute production monitoring cadence implemented.
   success ping all completed without runtime warnings.
 - The production monitor schedule now runs every 90 minutes using alternating minute-17 and
   minute-47 UTC cron entries, preserving off-hour scheduling and non-overlap protection.
-- The Healthchecks.io operational contract now expects a 90-minute Simple period with the existing
-  one-hour grace window; changing the account-side period remains an external deployment step.
+- The Healthchecks.io `Fly Club Monitor` check now uses a 90-minute Simple period with the existing
+  one-hour grace window, verified in the account after the workflow deployment.
+- PR #17 passed CI and was squash-merged into `main`; the remote workflow exposes both alternating
+  cron entries on the default branch.
 
 ## In progress
 
@@ -194,3 +196,7 @@ Manual checks:
   fare/health alerts, and zero failures.
 - GitHub Actions heartbeat production dispatch: start and completion steps succeeded, the persisted
   monitor completed eight of eight routes successfully, and no runtime warning was emitted.
+- GitHub Actions remote workflow: alternating 90-minute cron entries verified on `main` after PR
+  #17 merged.
+- Healthchecks.io `Fly Club Monitor`: 90-minute period and one-hour grace time verified in the
+  authenticated account.
