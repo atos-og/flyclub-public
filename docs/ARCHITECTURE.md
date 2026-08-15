@@ -48,6 +48,9 @@ database writes.
   execution with an advisory lock, and reads its connection only from `DATABASE_URL`.
 - `flyclub.storage.postgres`: persists monitor runs, comparable routes, route checks, and normalized
   snapshots atomically and idempotently; database errors are sanitized.
+- `flyclub.analysis.statistics`: provides pure `Decimal` P10/P50/P90, percentile rank, recorded-low,
+  sample-size, cold-start, and confidence calculations over a prior-only historical baseline. It is
+  implemented and tested but not connected to monitor persistence yet.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
 
@@ -62,8 +65,8 @@ database writes.
 
 ## V1 flow
 
-Collection through PostgreSQL is implemented. Components after persistence remain planned and must
-not be treated as operational:
+Collection through PostgreSQL and the pure statistics foundation are implemented. Statistical
+orchestration and components after it remain planned and must not be treated as operational:
 
 ```text
 Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlightsProvider / fli

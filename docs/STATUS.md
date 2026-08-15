@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 5 code complete — live Supabase validation, local `.env`, and provider health.
+Phase 6 in progress — prior-only price statistics and confidence foundations.
 
 ## Done
 
@@ -49,20 +49,29 @@ Phase 5 code complete — live Supabase validation, local `.env`, and provider h
 - Provider health derives `HEALTHY`, `DEGRADED`, `UNAVAILABLE`, and `PROVIDER_CHANGED` per run.
 - Live health transitions preserved incident start and consecutive failures, recorded recovery, and
   cleaned up the synthetic health row.
+- PR #5 was validated and merged into `main`.
+- The ignored real route configuration was created and validated without entering Git history.
+- A complete real dry run succeeded for every planned route, followed by a successful persisted
+  collection cycle in Supabase.
+- Pure `Decimal` statistics now calculate P10, P50, P90, percentile rank, recorded low, sample size,
+  cold-start state, and configurable confidence.
+- Percentile rank gives tied prices half weight, and the current price remains outside its own
+  historical baseline.
 
 ## In progress
 
-- Phase 5 changes are on `agent/provider-health`, pending publication and review.
+- Phase 6 statistics changes are on `feat/analysis-statistics`, pending publication and review.
 
 ## Next
 
-- Publish and integrate Phase 5.
-- Create the ignored real route configuration and run the first real persisted collection cycle.
+- Publish and integrate the statistics foundation.
+- Agree the deterministic Deal Score formula and connect statistics to persisted monitor results.
 
 ## Known issues
 
-- No Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert engine, or alert
-  deduplication exists yet.
+- Statistics are not connected to persisted monitor results yet.
+- No Telegram delivery, GitHub Actions workflow, Deal Score, alert engine, or alert deduplication
+  exists yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -73,7 +82,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 53 passed, 92% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 66 passed, 92% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -96,3 +105,6 @@ Manual checks:
   exact synthetic records removed afterward.
 - Live synthetic provider health: consecutive problems, incident, recovery, and cleanup verified.
 - `flyclub-db-migrate` loaded `DATABASE_URL` from ignored `.env` and applied zero pending migrations.
+- Private configuration validation planned eight routes without printing their endpoints.
+- Real provider dry run: eight successful routes, zero empty results, and zero failures.
+- First real persisted cycle: eight successful routes, zero empty results, and zero failures.
