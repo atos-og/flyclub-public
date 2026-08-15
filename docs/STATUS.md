@@ -128,6 +128,9 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   sequential.
 - Positioning fares use only the best compatible HOME fare from the same run for context, regardless
   of origin order.
+- POSITIONING markets now require a coarse configured round-trip cost estimate. Alert decisions use
+  net savings after that cost, suppress candidates below the material threshold, and show gross
+  savings, estimated cost, and estimated net savings when actionable.
 - Savings context appears only above the configurable material threshold and never includes an
   invented BH-to-São-Paulo cost.
 - A complete live cycle validated the deferred path with eight successes, eight analyses, eight

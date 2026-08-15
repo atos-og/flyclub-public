@@ -19,6 +19,7 @@ def test_public_example_is_valid() -> None:
     assert sum(config.analysis.deal_score_weights.model_dump().values()) == 100
     assert config.health.problem_alert_after_runs == 3
     assert config.alerts.positioning_context_min_savings == 100
+    assert config.origins["from_sao_paulo"].positioning_cost_estimate == 650
 
 
 def test_environment_yaml_takes_precedence_over_file(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -35,6 +36,15 @@ def test_positioning_origin_requires_a_notice() -> None:
     )
 
     with pytest.raises(ConfigError, match="POSITIONING origin requires a notice"):
+        load_config_text(content)
+
+
+def test_positioning_origin_requires_a_cost_estimate() -> None:
+    content = EXAMPLE_PATH.read_text(encoding="utf-8").replace(
+        "    positioning_cost_estimate: 650\n", ""
+    )
+
+    with pytest.raises(ConfigError, match="requires a positioning cost estimate"):
         load_config_text(content)
 
 

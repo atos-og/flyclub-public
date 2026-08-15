@@ -10,7 +10,7 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
-from flyclub.alerts.engine import AlertDecision, AlertPolicy, AlertResult, decide_alert
+from flyclub.alerts.engine import AlertDecision, AlertPolicy, AlertReason, AlertResult, decide_alert
 from flyclub.alerts.formatter import format_alert_message
 from flyclub.alerts.telegram import TelegramClient, TelegramError
 from flyclub.analysis.evaluator import RoutePriceEvaluation
@@ -100,6 +100,21 @@ class AlertCoordinator:
             last_sent_alert=last_alert,
             policy=self._policy,
         )
+        actionable_comparison = origin_comparison
+        if (
+            alert.decision is AlertDecision.SEND
+            and route.positioning_cost_estimate is not None
+            and origin_comparison is not None
+        ):
+            gross_savings = origin_comparison.reference_price - current_option.price
+            net_savings = gross_savings - route.positioning_cost_estimate
+            if net_savings < self._positioning_context_min_savings:
+                alert = AlertResult(
+                    decision=AlertDecision.SUPPRESS,
+                    reasons=(*alert.reasons, AlertReason.POSITIONING_COST_NOT_RECOVERED),
+                    drop_amount=alert.drop_amount,
+                    drop_percent=alert.drop_percent,
+                )
         record = self._repository.record_alert_decision(
             route_check_id=current_check_id,
             decision=alert.decision,
@@ -110,10 +125,11 @@ class AlertCoordinator:
         if alert.decision is AlertDecision.SUPPRESS or not record.created:
             return AlertHandlingResult(alert=alert, delivered=False)
 
-        actionable_comparison = origin_comparison
         if (
             actionable_comparison is not None
-            and actionable_comparison.reference_price - current_option.price
+            and actionable_comparison.reference_price
+            - current_option.price
+            - (route.positioning_cost_estimate or Decimal("0"))
             < self._positioning_context_min_savings
         ):
             actionable_comparison = None

@@ -60,6 +60,7 @@ class RouteDefinition:
     currency: str
     max_stops: MaxStops
     alert_price: Decimal | None
+    positioning_cost_estimate: Decimal | None = None
     kind: RouteKind = RouteKind.MAIN
 
 

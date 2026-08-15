@@ -217,6 +217,11 @@ Reason: This gives actionable context without mixing incompatible tickets or inv
 Trade-offs: Fare decisions occur at the end of the collection cycle, and no comparison is shown if
 the matching HOME route is empty or fails.
 
+The initial informational-only comparison was superseded by a configured net-savings rule. Every
+POSITIONING market must provide a coarse round-trip cost estimate for the configured passenger
+count. A candidate is actionable only when HOME fare minus positioning fare minus that cost meets
+the material-savings threshold. The estimate is intentionally editable and is never inferred.
+
 ## DEC-015 — Daily fixed-duration flexible-date scan
 
 Status: Accepted

@@ -34,6 +34,7 @@ def test_planner_preserves_origin_semantics() -> None:
     assert sao_paulo.origin_role is OriginRole.POSITIONING
     assert sao_paulo.origin_airports == ("GRU", "VCP", "CGH")
     assert "não incluído" in (sao_paulo.positioning_notice or "")
+    assert sao_paulo.positioning_cost_estimate == Decimal("650")
 
 
 def test_alert_price_does_not_change_comparable_route_identity() -> None:

@@ -23,6 +23,8 @@ origins:
       - VCP
       - CGH
     notice: "Saída de São Paulo — deslocamento BH → SP não incluído."
+    # Round-trip feeder ticket/ground transport estimate for the configured passenger count.
+    positioning_cost_estimate: 650
 
 destinations:
   - code: LIS

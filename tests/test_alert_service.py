@@ -29,12 +29,12 @@ from flyclub.models import (
 NOW = datetime(2027, 1, 1, tzinfo=UTC)
 
 
-def _route(*, target: str | None) -> RouteDefinition:
+def _route(*, target: str | None, positioning_cost: str | None = None) -> RouteDefinition:
     return RouteDefinition(
         key="route-key",
         origin_group="from_bh",
         origin_label="Belo Horizonte",
-        origin_role=OriginRole.HOME,
+        origin_role=(OriginRole.POSITIONING if positioning_cost is not None else OriginRole.HOME),
         origin_airports=("CNF",),
         positioning_notice=None,
         destination="LIS",
@@ -46,6 +46,9 @@ def _route(*, target: str | None) -> RouteDefinition:
         currency="BRL",
         max_stops=MaxStops.ANY,
         alert_price=Decimal(target) if target is not None else None,
+        positioning_cost_estimate=(
+            Decimal(positioning_cost) if positioning_cost is not None else None
+        ),
     )
 
 
@@ -187,22 +190,48 @@ def test_positioning_context_is_forwarded_only_for_material_savings() -> None:
         formatter=lambda **kwargs: captured.append(kwargs) or "formatted alert",
     )
     common = {
-        "route": _route(target="100"),
+        "route": _route(target="100", positioning_cost="20"),
         "current_option": FlightOption(Decimal("80"), "BRL", ()),
         "current_at": NOW,
         "evaluation": _evaluation(),
     }
 
-    coordinator.handle(
+    first = coordinator.handle(
         current_check_id=uuid4(),
-        origin_comparison=OriginPriceComparison("CNF", Decimal("179")),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("199")),
         **common,
     )
-    assert captured[0]["origin_comparison"] is None
+    assert first.alert.decision is AlertDecision.SUPPRESS
+    assert captured == []
 
     coordinator.handle(
         current_check_id=uuid4(),
-        origin_comparison=OriginPriceComparison("CNF", Decimal("180")),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("200")),
         **common,
     )
-    assert captured[1]["origin_comparison"] == OriginPriceComparison("CNF", Decimal("180"))
+    assert captured[0]["origin_comparison"] == OriginPriceComparison("CNF", Decimal("200"))
+
+
+def test_positioning_alert_is_suppressed_when_estimated_net_savings_is_too_low() -> None:
+    repository = FakeRepository()
+    telegram = FakeTelegram()
+    coordinator = AlertCoordinator(
+        repository,  # type: ignore[arg-type]
+        telegram,  # type: ignore[arg-type]
+        AlertPolicy(),
+        positioning_context_min_savings=Decimal("100"),
+        formatter=lambda **_kwargs: "formatted alert",
+    )
+
+    result = coordinator.handle(
+        route=_route(target="100", positioning_cost="700"),
+        current_check_id=uuid4(),
+        current_option=FlightOption(Decimal("80"), "BRL", ()),
+        current_at=NOW,
+        evaluation=_evaluation(),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("850")),
+    )
+
+    assert result.alert.decision is AlertDecision.SUPPRESS
+    assert repository.recorded[0]["reason_codes"][-1] == "POSITIONING_COST_NOT_RECOVERED"
+    assert telegram.messages == []

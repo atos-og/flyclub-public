@@ -45,6 +45,7 @@ def _route(*, positioning: bool = False, passengers: int = 2) -> RouteDefinition
         currency="BRL",
         max_stops=MaxStops.ANY,
         alert_price=None,
+        positioning_cost_estimate=Decimal("650") if positioning else None,
     )
 
 
@@ -163,9 +164,9 @@ def test_formatter_contextualizes_material_positioning_savings() -> None:
         origin_comparison=OriginPriceComparison("CNF", Decimal("3724")),
     )
 
-    assert "Sair de GRU está R$ 694,00 mais barato que sair de CNF hoje" in message
-    assert "deslocamento até São Paulo não está incluído" in message
-    assert "só compensa se custar menos que R$ 694,00" in message
+    assert "Economia bruta saindo de GRU: R$ 694,00 vs. CNF" in message
+    assert "Custo estimado de posicionamento: R$ 650,00" in message
+    assert "Economia líquida estimada: R$ 44,00" in message
     assert "deslocamento BH → SP não incluído" not in message
 
 

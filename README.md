@@ -93,8 +93,10 @@ is never sent again. Telegram credentials are read only from `TELEGRAM_BOT_TOKEN
 
 For positioning origins such as São Paulo, the monitor compares the fare with the best compatible
 HOME-origin option found in the same run. When the savings meet
-`alerts.positioning_context_min_savings`, the message states the difference and the HOME departure
-airport while preserving the warning that separate positioning travel is not included.
+`alerts.positioning_context_min_savings` after subtracting the configured
+`positioning_cost_estimate`, the message states gross savings, estimated round-trip positioning
+cost for the configured passenger count, and estimated net savings. A positioning opportunity that
+does not clear that net threshold is persisted as suppressed instead of being sent.
 
 ## GitHub Actions
 

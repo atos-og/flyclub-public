@@ -73,6 +73,7 @@ class OriginGroupConfig(StrictModel):
     role: OriginRole
     airports: tuple[str, ...] = Field(min_length=1)
     notice: str | None = Field(default=None, max_length=240)
+    positioning_cost_estimate: Decimal | None = Field(default=None, gt=0)
 
     @field_validator("airports", mode="before")
     @classmethod
@@ -87,6 +88,10 @@ class OriginGroupConfig(StrictModel):
             raise ValueError("airports must not contain duplicates")
         if self.role is OriginRole.POSITIONING and not self.notice:
             raise ValueError("a POSITIONING origin requires a notice")
+        if self.role is OriginRole.POSITIONING and self.positioning_cost_estimate is None:
+            raise ValueError("a POSITIONING origin requires a positioning cost estimate")
+        if self.role is OriginRole.HOME and self.positioning_cost_estimate is not None:
+            raise ValueError("a HOME origin cannot define a positioning cost estimate")
         return self
 
 

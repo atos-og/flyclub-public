@@ -165,17 +165,30 @@ def format_alert_message(
 
     comparison_shown = False
     if origin_comparison is not None and option.price < origin_comparison.reference_price:
-        savings = origin_comparison.reference_price - option.price
+        gross_savings = origin_comparison.reference_price - option.price
         comparison_shown = True
         lines.extend(
             [
                 "",
-                f"📍 Sair de {actual_origin} está {_money(savings, option.currency)} mais barato "
-                f"que sair de {origin_comparison.reference_origin} hoje.",
-                f"O deslocamento até {route.origin_label} não está incluído; só compensa se "
-                f"custar menos que {_money(savings, option.currency)}.",
+                f"📍 Economia bruta saindo de {actual_origin}: "
+                f"{_money(gross_savings, option.currency)} vs. "
+                f"{origin_comparison.reference_origin}",
             ]
         )
+        if route.positioning_cost_estimate is not None:
+            net_savings = gross_savings - route.positioning_cost_estimate
+            lines.extend(
+                [
+                    f"🚐 Custo estimado de posicionamento: "
+                    f"{_money(route.positioning_cost_estimate, option.currency)}",
+                    f"✅ Economia líquida estimada: {_money(net_savings, option.currency)}",
+                ]
+            )
+        else:
+            lines.append(
+                f"O deslocamento até {route.origin_label} não está incluído; só compensa se "
+                f"custar menos que {_money(gross_savings, option.currency)}."
+            )
     if route.positioning_notice and not comparison_shown:
         lines.extend(["", f"⚠️ {route.positioning_notice}"])
     url = option.booking_url or option.google_flights_url

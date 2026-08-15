@@ -90,6 +90,7 @@ def plan_routes(config: FlyClubConfig) -> tuple[RouteDefinition, ...]:
                     currency=config.trip.currency,
                     max_stops=config.trip.max_stops,
                     alert_price=destination.alert_price,
+                    positioning_cost_estimate=origin.positioning_cost_estimate,
                 )
             )
     return tuple(routes)

@@ -97,8 +97,8 @@ database writes.
 - Provider adapters must convert external results into `FlightOption` and `SearchOutcome` before
   returning. External provider types must not cross this boundary.
 - `SearchOutcome` keeps empty results distinct from provider and request failures.
-- Cross-origin context compares only compatible routes from the same run and never adds or invents
-  a separate positioning-trip cost.
+- Cross-origin decisions compare only compatible routes from the same run and subtract the
+  explicitly configured positioning-cost estimate; no cost is inferred from provider data.
 
 ## V1 flow
 
