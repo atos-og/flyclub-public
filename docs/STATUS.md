@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 12 complete — external GitHub Actions heartbeat operational.
+Phase 13 complete — 90-minute production monitoring cadence implemented.
 
 ## Done
 
@@ -126,6 +126,10 @@ Phase 12 complete — external GitHub Actions heartbeat operational.
 - The first heartbeat-enabled manual production run completed in 1m31s: `/start`, eight successful
   and analyzed routes, eight suppressions, zero fare/health alerts, zero failures, and the final
   success ping all completed without runtime warnings.
+- The production monitor schedule now runs every 90 minutes using alternating minute-17 and
+  minute-47 UTC cron entries, preserving off-hour scheduling and non-overlap protection.
+- The Healthchecks.io operational contract now expects a 90-minute Simple period with the existing
+  one-hour grace window; changing the account-side period remains an external deployment step.
 
 ## In progress
 
@@ -147,12 +151,13 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 146 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 147 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
 - `git diff --check`: passed.
 - Monitor workflow YAML parsing and heartbeat contract tests: passed.
+- Monitor 90-minute schedule contract test: passed.
 
 Manual checks:
 

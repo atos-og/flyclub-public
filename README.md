@@ -98,10 +98,10 @@ airport while preserving the warning that separate positioning travel is not inc
 
 ## GitHub Actions
 
-The private monitor workflow runs at minute 17 every three hours (UTC) and also supports manual
-dispatch. GitHub schedules are approximate and can be delayed. The workflow allows only read access
-to repository contents, prevents overlapping monitor runs, applies pending migrations, and then
-runs the persisted monitor without printing private route details.
+The private monitor workflow runs every 90 minutes (UTC), alternating between minutes 17 and 47,
+and also supports manual dispatch. GitHub schedules are approximate and can be delayed. The
+workflow allows only read access to repository contents, prevents overlapping monitor runs, applies
+pending migrations, and then runs the persisted monitor without printing private route details.
 
 Configure these repository secrets before enabling or manually dispatching the monitor:
 
@@ -120,7 +120,7 @@ deployment secret.
 Healthchecks.io monitors only whether the scheduled process starts and finishes. Provider health,
 empty results, Deal Score, fare decisions, route monitoring, persistence, and Fly Club Telegram
 notifications stay inside the application. Configure one Simple-schedule check named
-`Fly Club Monitor`, with a three-hour period and one-hour grace time, and use Healthchecks.io's
+`Fly Club Monitor`, with a 90-minute period and one-hour grace time, and use Healthchecks.io's
 native Telegram integration for external workflow alerts.
 
 The separate CI workflow runs tests, lint, and formatting checks for pull requests and pushes to

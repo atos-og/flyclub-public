@@ -12,7 +12,7 @@ It is not a generic travel search engine, agency, dashboard, or purchase recomme
 
 - Target R$ 0 infrastructure cost. Ask before adding any paid service or material cost risk.
 - Use Python, with `fli` as the primary provider, behind Fly Club's `FlightProvider` boundary.
-- Run short-lived monitoring jobs in GitHub Actions approximately every three hours.
+- Run short-lived monitoring jobs in GitHub Actions approximately every 90 minutes.
 - Persist history in PostgreSQL on Supabase; do not use local SQLite as V1 persistence.
 - Use Telegram as the only V1 notification channel.
 - Do not add a frontend, web server, ML, or an LLM-based Deal Score in V1.

@@ -8,6 +8,14 @@ def _workflow_text() -> str:
     return WORKFLOW_PATH.read_text(encoding="utf-8")
 
 
+def test_monitor_runs_every_ninety_minutes_away_from_top_of_hour() -> None:
+    workflow = _workflow_text()
+
+    assert 'cron: "17 0,3,6,9,12,15,18,21 * * *"' in workflow
+    assert 'cron: "47 1,4,7,10,13,16,19,22 * * *"' in workflow
+    assert 'cron: "17 */3 * * *"' not in workflow
+
+
 def test_healthchecks_wraps_the_main_monitor_flow() -> None:
     workflow = _workflow_text()
 

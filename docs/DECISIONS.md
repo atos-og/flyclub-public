@@ -48,12 +48,15 @@ Status: Accepted
 
 Context: The monitor only needs to wake periodically and must not depend on the user's computer.
 
-Decision: Run approximately every three hours and support manual dispatch; do not operate a 24/7
+Decision: Run approximately every 90 minutes and support manual dispatch; do not operate a 24/7
 server.
 
-Reason: It is simple and compatible with the R$ 0 goal.
+Reason: It halves the polling detection window while remaining compatible with the R$ 0 goal and
+the observed GitHub Actions allowance.
 
 Trade-offs: Schedules are approximate and require independent monitoring to detect missed runs.
+The higher request rate also modestly increases unofficial-provider reliability risk and storage
+growth.
 
 ## DEC-005 — Route checks and snapshots are separate
 
@@ -136,7 +139,7 @@ Status: Accepted
 
 Context: In-process health monitoring cannot report that GitHub Actions failed to start at all.
 
-Decision: Use one Healthchecks.io check named `Fly Club Monitor` on a Simple three-hour period with
+Decision: Use one Healthchecks.io check named `Fly Club Monitor` on a Simple 90-minute period with
 one-hour grace time. The main GitHub Actions job sends best-effort start, success, and failure
 signals with bounded `curl` requests. Store the base Ping URL only in the
 `HEALTHCHECKS_PING_URL` Repository Secret and use Healthchecks.io's native Telegram integration.
