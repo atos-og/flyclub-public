@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
@@ -13,7 +14,7 @@ from flyclub.alerts.engine import AlertDecision, AlertPolicy, AlertResult, decid
 from flyclub.alerts.formatter import format_alert_message
 from flyclub.alerts.telegram import TelegramClient, TelegramError
 from flyclub.analysis.evaluator import RoutePriceEvaluation
-from flyclub.models import FlightOption, PriceObservation, RouteDefinition
+from flyclub.models import FlightOption, OriginPriceComparison, PriceObservation, RouteDefinition
 
 
 class AlertDeliveryStatus(StrEnum):
@@ -69,11 +70,15 @@ class AlertCoordinator:
         telegram: TelegramClient,
         policy: AlertPolicy,
         *,
+        positioning_context_min_savings: Decimal = Decimal("100"),
         formatter: Callable[..., str] = format_alert_message,
     ) -> None:
+        if positioning_context_min_savings < 0:
+            raise ValueError("positioning_context_min_savings must not be negative")
         self._repository = repository
         self._telegram = telegram
         self._policy = policy
+        self._positioning_context_min_savings = positioning_context_min_savings
         self._formatter = formatter
 
     def handle(
@@ -84,6 +89,7 @@ class AlertCoordinator:
         current_option: FlightOption,
         current_at: datetime,
         evaluation: RoutePriceEvaluation,
+        origin_comparison: OriginPriceComparison | None = None,
     ) -> AlertHandlingResult:
         last_alert = self._repository.last_sent_alert_price(route_key=route.key)
         alert = decide_alert(
@@ -104,11 +110,19 @@ class AlertCoordinator:
         if alert.decision is AlertDecision.SUPPRESS or not record.created:
             return AlertHandlingResult(alert=alert, delivered=False)
 
+        actionable_comparison = origin_comparison
+        if (
+            actionable_comparison is not None
+            and actionable_comparison.reference_price - current_option.price
+            < self._positioning_context_min_savings
+        ):
+            actionable_comparison = None
         message = self._formatter(
             route=route,
             option=current_option,
             evaluation=evaluation,
             alert=alert,
+            origin_comparison=actionable_comparison,
         )
         try:
             delivery = self._telegram.send_message(message)

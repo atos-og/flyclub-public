@@ -58,6 +58,7 @@ alerts:
   cooldown_hours: 24
   min_drop_amount: 100
   min_drop_percent: 5
+  positioning_context_min_savings: 100
 
 health:
   problem_alert_after_runs: 3

@@ -122,6 +122,7 @@ def _run_all_routes(
                 min_drop_percent=config.alerts.min_drop_percent,
                 min_score_samples=config.analysis.min_score_samples,
             ),
+            positioning_context_min_savings=config.alerts.positioning_context_min_savings,
         )
         health_handler = ProviderHealthCoordinator(
             repository,

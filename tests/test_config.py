@@ -18,6 +18,7 @@ def test_public_example_is_valid() -> None:
     assert config.analysis.deal_score_weights.percentile == 40
     assert sum(config.analysis.deal_score_weights.model_dump().values()) == 100
     assert config.health.problem_alert_after_runs == 3
+    assert config.alerts.positioning_context_min_savings == 100
 
 
 def test_environment_yaml_takes_precedence_over_file(monkeypatch: pytest.MonkeyPatch) -> None:

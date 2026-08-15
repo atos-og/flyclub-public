@@ -9,7 +9,14 @@ from flyclub.alerts.health import HealthNotificationResult
 from flyclub.alerts.service import AlertHandlingResult
 from flyclub.config import load_config
 from flyclub.health import HealthNotificationKind, ProviderHealthState, ProviderHealthStatus
-from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
+from flyclub.models import (
+    FlightOption,
+    OriginPriceComparison,
+    OriginRole,
+    RouteDefinition,
+    SearchOutcome,
+    SearchStatus,
+)
 from flyclub.monitor import MonitorSummary, run_monitor
 from flyclub.route_planner import config_fingerprint, plan_routes
 from flyclub.storage.postgres import RunStatus
@@ -312,6 +319,42 @@ def test_monitor_counts_delivered_and_suppressed_alerts() -> None:
     assert summary.alerts_sent == 1
     assert summary.alerts_suppressed == 1
     assert len(handler.handled) == 2
+
+
+def test_positioning_alert_receives_best_home_price_regardless_of_route_order() -> None:
+    config = load_config(EXAMPLE_PATH)
+    all_routes = plan_routes(config)
+    home = next(
+        route
+        for route in all_routes
+        if route.destination == "LIS" and route.origin_role is OriginRole.HOME
+    )
+    positioning = next(
+        route
+        for route in all_routes
+        if route.destination == "LIS" and route.origin_role is OriginRole.POSITIONING
+    )
+    repository = FakeRepository()
+    analyzer = FakeAnalyzer()
+    suppressed = AlertHandlingResult(
+        alert=AlertResult(AlertDecision.SUPPRESS, (AlertReason.NO_TRIGGER,)),
+        delivered=False,
+    )
+    handler = FakeAlertHandler([suppressed, suppressed])
+
+    run_monitor(
+        routes=(positioning, home),
+        config_fingerprint=config_fingerprint(config),
+        provider=FakeProvider([_success("2500"), _success("3200")]),
+        max_results=5,
+        repository=repository,
+        analyzer=analyzer,
+        alert_handler=handler,
+    )
+
+    comparison = handler.handled[0]["origin_comparison"]
+    assert comparison == OriginPriceComparison("CNF", Decimal("3200"))
+    assert handler.handled[1]["origin_comparison"] is None
 
 
 def test_alert_handler_requires_analyzer() -> None:

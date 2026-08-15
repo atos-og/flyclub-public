@@ -14,7 +14,14 @@ from flyclub.alerts.health import HealthNotificationResult
 from flyclub.alerts.service import AlertHandlingResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.health import ProviderHealthState, ProviderHealthStatus
-from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
+from flyclub.models import (
+    FlightOption,
+    OriginPriceComparison,
+    OriginRole,
+    RouteDefinition,
+    SearchOutcome,
+    SearchStatus,
+)
 from flyclub.providers.base import FlightProvider
 from flyclub.storage.postgres import RunStatus
 
@@ -82,11 +89,27 @@ class AlertHandler(Protocol):
         current_option: FlightOption,
         current_at: datetime,
         evaluation: RoutePriceEvaluation,
+        origin_comparison: OriginPriceComparison | None = None,
     ) -> AlertHandlingResult: ...
 
 
 class HealthHandler(Protocol):
     def handle(self, state: ProviderHealthState) -> HealthNotificationResult: ...
+
+
+@dataclass(frozen=True, slots=True)
+class _PendingAlert:
+    route: RouteDefinition
+    current_check_id: UUID
+    current_option: FlightOption
+    current_at: datetime
+    evaluation: RoutePriceEvaluation
+
+
+@dataclass(frozen=True, slots=True)
+class _HomeReference:
+    origin: str
+    price: Decimal
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +167,22 @@ def _provider_health(
     return ProviderHealthStatus.DEGRADED, failures[0].error_code
 
 
+def _comparison_key(route: RouteDefinition) -> tuple[object, ...]:
+    return (
+        route.destination,
+        route.departure_date,
+        route.return_date,
+        route.passengers,
+        route.cabin,
+        route.currency,
+        route.max_stops,
+    )
+
+
+def _actual_origin(route: RouteDefinition, option: FlightOption) -> str:
+    return option.legs[0].origin_airport if option.legs else "/".join(route.origin_airports)
+
+
 def run_monitor(
     *,
     routes: tuple[RouteDefinition, ...],
@@ -181,6 +220,8 @@ def run_monitor(
     alerts_suppressed = 0
     health_alerts_sent = 0
     outcomes: list[SearchOutcome] = []
+    pending_alerts: list[_PendingAlert] = []
+    home_references: dict[tuple[object, ...], _HomeReference] = {}
 
     try:
         for route in routes:
@@ -207,17 +248,24 @@ def run_monitor(
                     )
                     analyzed += 1
                     if alert_handler is not None:
-                        handling = alert_handler.handle(
-                            route=route,
-                            current_check_id=check_id,
-                            current_option=current_option,
-                            current_at=checked_at,
-                            evaluation=evaluation,
+                        pending_alerts.append(
+                            _PendingAlert(
+                                route=route,
+                                current_check_id=check_id,
+                                current_option=current_option,
+                                current_at=checked_at,
+                                evaluation=evaluation,
+                            )
                         )
-                        if handling.delivered:
-                            alerts_sent += 1
-                        elif handling.alert.decision is AlertDecision.SUPPRESS:
-                            alerts_suppressed += 1
+
+                    if route.origin_role is OriginRole.HOME:
+                        key = _comparison_key(route)
+                        previous = home_references.get(key)
+                        if previous is None or current_option.price < previous.price:
+                            home_references[key] = _HomeReference(
+                                origin=_actual_origin(route, current_option),
+                                price=current_option.price,
+                            )
 
             if outcome.status is SearchStatus.SUCCESS:
                 successful += 1
@@ -226,6 +274,31 @@ def run_monitor(
             else:
                 failed += 1
             outcomes.append(outcome)
+
+        if alert_handler is not None:
+            for pending in pending_alerts:
+                home_reference = home_references.get(_comparison_key(pending.route))
+                origin_comparison = (
+                    OriginPriceComparison(
+                        reference_origin=home_reference.origin,
+                        reference_price=home_reference.price,
+                    )
+                    if pending.route.origin_role is OriginRole.POSITIONING
+                    and home_reference is not None
+                    else None
+                )
+                handling = alert_handler.handle(
+                    route=pending.route,
+                    current_check_id=pending.current_check_id,
+                    current_option=pending.current_option,
+                    current_at=pending.current_at,
+                    evaluation=pending.evaluation,
+                    origin_comparison=origin_comparison,
+                )
+                if handling.delivered:
+                    alerts_sent += 1
+                elif handling.alert.decision is AlertDecision.SUPPRESS:
+                    alerts_suppressed += 1
     except Exception:
         if repository is not None:
             with suppress(Exception):  # Preserve the original error if recovery also fails.

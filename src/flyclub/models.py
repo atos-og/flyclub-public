@@ -103,3 +103,19 @@ class PriceObservation:
 
     price: Decimal
     observed_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class OriginPriceComparison:
+    """Best comparable HOME-origin fare found in the same monitor run."""
+
+    reference_origin: str
+    reference_price: Decimal
+
+    def __post_init__(self) -> None:
+        if not self.reference_origin.strip():
+            raise ValueError("reference_origin must not be empty")
+        if not isinstance(self.reference_price, Decimal):
+            raise TypeError("reference_price must use Decimal")
+        if self.reference_price <= 0 or not self.reference_price.is_finite():
+            raise ValueError("reference_price must be finite and greater than zero")

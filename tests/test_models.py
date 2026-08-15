@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from flyclub.models import FlightOption, SearchOutcome, SearchStatus
+from flyclub.models import FlightOption, OriginPriceComparison, SearchOutcome, SearchStatus
 
 
 def test_success_requires_at_least_one_option() -> None:
@@ -26,3 +26,13 @@ def test_empty_result_is_distinct_from_failure() -> None:
 
     assert result.options == ()
     assert result.error_code is None
+
+
+def test_origin_comparison_requires_positive_decimal_reference() -> None:
+    comparison = OriginPriceComparison("CNF", Decimal("3200.00"))
+
+    assert comparison.reference_origin == "CNF"
+    assert comparison.reference_price == Decimal("3200.00")
+
+    with pytest.raises(TypeError, match="Decimal"):
+        OriginPriceComparison("CNF", 3200)  # type: ignore[arg-type]

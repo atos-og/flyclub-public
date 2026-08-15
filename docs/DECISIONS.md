@@ -183,3 +183,20 @@ repeated messages.
 
 Trade-offs: Conservative gating can delay some genuine early opportunities, while post-cooldown
 reminders can still repeat an opportunity that remains valid.
+
+## DEC-014 — Same-run HOME context for positioning fares
+
+Status: Accepted
+
+Context: A São Paulo-origin fare can look cheaper while still requiring separate travel from Belo
+Horizonte, and historical or stale comparisons would make the alert misleading.
+
+Decision: After sequential collection, defer fare-alert decisions until all successful routes in
+the run are available. Compare a positioning fare only with the cheapest compatible HOME-origin
+fare from that same run. Show the difference only above a configurable material-savings threshold,
+and always preserve the positioning warning without estimating the separate trip cost.
+
+Reason: This gives actionable context without mixing incompatible tickets or inventing costs.
+
+Trade-offs: Fare decisions occur at the end of the collection cycle, and no comparison is shown if
+the matching HOME route is empty or fails.

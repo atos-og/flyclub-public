@@ -7,7 +7,7 @@ from decimal import Decimal
 from flyclub.alerts.engine import AlertReason, AlertResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel
-from flyclub.models import FlightOption, RouteDefinition
+from flyclub.models import FlightOption, OriginPriceComparison, RouteDefinition
 
 
 def _money(value: Decimal, currency: str) -> str:
@@ -42,6 +42,7 @@ def format_alert_message(
     option: FlightOption,
     evaluation: RoutePriceEvaluation,
     alert: AlertResult,
+    origin_comparison: OriginPriceComparison | None = None,
 ) -> str:
     """Format one consolidated alert without inventing itinerary or URL data."""
 
@@ -102,6 +103,15 @@ def format_alert_message(
     if visible_reasons:
         lines.extend(["", "Motivos: " + "; ".join(visible_reasons)])
 
+    if origin_comparison is not None and option.price < origin_comparison.reference_price:
+        savings = origin_comparison.reference_price - option.price
+        lines.extend(
+            [
+                "",
+                f"💰 {_money(savings, option.currency)} abaixo da melhor opção atual "
+                f"saindo de {origin_comparison.reference_origin}.",
+            ]
+        )
     if route.positioning_notice:
         lines.extend(["", f"⚠️ {route.positioning_notice}"])
     url = option.booking_url or option.google_flights_url

@@ -21,6 +21,7 @@ from flyclub.models import (
     CabinClass,
     FlightOption,
     MaxStops,
+    OriginPriceComparison,
     OriginRole,
     RouteDefinition,
 )
@@ -172,3 +173,36 @@ def test_delivery_failure_is_marked_and_propagated() -> None:
     assert repository.failed[0]["alert_id"] == repository.alert_id
     assert repository.failed[0]["error_code"] == "TelegramError"
     assert repository.sent == []
+
+
+def test_positioning_context_is_forwarded_only_for_material_savings() -> None:
+    captured: list[dict[str, object]] = []
+    repository = FakeRepository()
+    telegram = FakeTelegram()
+    coordinator = AlertCoordinator(
+        repository,  # type: ignore[arg-type]
+        telegram,  # type: ignore[arg-type]
+        AlertPolicy(),
+        positioning_context_min_savings=Decimal("100"),
+        formatter=lambda **kwargs: captured.append(kwargs) or "formatted alert",
+    )
+    common = {
+        "route": _route(target="100"),
+        "current_option": FlightOption(Decimal("80"), "BRL", ()),
+        "current_at": NOW,
+        "evaluation": _evaluation(),
+    }
+
+    coordinator.handle(
+        current_check_id=uuid4(),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("179")),
+        **common,
+    )
+    assert captured[0]["origin_comparison"] is None
+
+    coordinator.handle(
+        current_check_id=uuid4(),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("180")),
+        **common,
+    )
+    assert captured[1]["origin_comparison"] == OriginPriceComparison("CNF", Decimal("180"))

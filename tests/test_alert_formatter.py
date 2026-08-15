@@ -14,6 +14,7 @@ from flyclub.models import (
     FlightLeg,
     FlightOption,
     MaxStops,
+    OriginPriceComparison,
     OriginRole,
     RouteDefinition,
 )
@@ -116,6 +117,19 @@ def test_formatter_warns_when_positioning_trip_starts_in_sao_paulo() -> None:
         route=_route(positioning=True), option=_option(), evaluation=_evaluation(), alert=_alert()
     )
 
+    assert "deslocamento BH → SP não incluído" in message
+
+
+def test_formatter_contextualizes_material_positioning_savings() -> None:
+    message = format_alert_message(
+        route=_route(positioning=True),
+        option=_option(),
+        evaluation=_evaluation(),
+        alert=_alert(),
+        origin_comparison=OriginPriceComparison("CNF", Decimal("3724")),
+    )
+
+    assert "R$ 694,00 abaixo da melhor opção atual saindo de CNF" in message
     assert "deslocamento BH → SP não incluído" in message
 
 

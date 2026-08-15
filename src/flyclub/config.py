@@ -142,6 +142,7 @@ class AlertConfig(StrictModel):
     cooldown_hours: int = Field(default=24, ge=0)
     min_drop_amount: Decimal = Field(default=Decimal("100"), ge=0)
     min_drop_percent: Decimal = Field(default=Decimal("5"), ge=0, le=100)
+    positioning_context_min_savings: Decimal = Field(default=Decimal("100"), ge=0)
 
 
 class HealthConfig(StrictModel):

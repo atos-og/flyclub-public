@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 10 complete — deduplicated provider problem and recovery alerts.
+Phase 11 complete — same-run Belo Horizonte versus São Paulo fare context.
 
 ## Done
 
@@ -103,6 +103,14 @@ Phase 10 complete — deduplicated provider problem and recovery alerts.
   zero migrations.
 - Live synthetic provider-health transitions validated three consecutive failures, warning state,
   recovery state, deduplication, and cleanup without sending a real health message.
+- Fare alert decisions now wait until every route is collected, while provider searches remain
+  sequential.
+- Positioning fares use only the best compatible HOME fare from the same run for context, regardless
+  of origin order.
+- Savings context appears only above the configurable material threshold and never includes an
+  invented BH-to-São-Paulo cost.
+- A complete live cycle validated the deferred path with eight successes, eight analyses, eight
+  cold-start suppressions, zero fare alerts, zero health alerts, and zero failures.
 
 ## In progress
 
@@ -110,14 +118,11 @@ Phase 10 complete — deduplicated provider problem and recovery alerts.
 
 ## Next
 
-- Add the current-run comparison between Belo Horizonte and São Paulo origin groups for actionable
-  fare context.
 - Perform the dedicated V1 security, documentation, license, and acknowledgements review before
   considering public visibility.
 
 ## Known issues
 
-- Cross-origin BH versus São Paulo price context is not included in alerts yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -128,7 +133,7 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 139 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 143 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -165,3 +170,5 @@ Manual checks:
 - Live migration 002: one migration applied; immediate rerun applied zero.
 - Live synthetic provider-health notifications: problem/recovery markers and retry-safe transitions
   passed; the exact synthetic row was removed.
+- Integrated same-run comparison cycle: eight successful/analyzed routes, eight suppressions, zero
+  fare/health alerts, and zero failures.

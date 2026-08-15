@@ -91,6 +91,11 @@ A persisted cycle also records one idempotent alert decision per successful rout
 is never sent again. Telegram credentials are read only from `TELEGRAM_BOT_TOKEN` and
 `TELEGRAM_CHAT_ID`.
 
+For positioning origins such as São Paulo, the monitor compares the fare with the best compatible
+HOME-origin option found in the same run. When the savings meet
+`alerts.positioning_context_min_savings`, the message states the difference and the HOME departure
+airport while preserving the warning that separate positioning travel is not included.
+
 ## GitHub Actions
 
 The private monitor workflow runs at minute 17 every three hours (UTC) and also supports manual

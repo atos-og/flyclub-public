@@ -50,8 +50,9 @@ database writes.
 - `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
   classifies errors, normalizes results, and validates deep links.
 - `flyclub.monitor`: runs provider searches sequentially, records every outcome, derives the run
-  status, analyzes successful observations, coordinates alerts, updates aggregate provider health,
-  and attempts to close aborted persisted runs as failures.
+  status, analyzes successful observations, defers fare decisions until same-run HOME comparisons
+  are available, coordinates alerts, updates aggregate provider health, and attempts to close
+  aborted persisted runs as failures.
 - `flyclub.storage.migrations`: discovers checksum-protected SQL migrations, serializes migration
   execution with an advisory lock, and reads its connection only from `DATABASE_URL`.
 - `flyclub.storage.postgres`: persists monitor runs, comparable routes, route checks, and normalized
@@ -88,6 +89,8 @@ database writes.
 - Provider adapters must convert external results into `FlightOption` and `SearchOutcome` before
   returning. External provider types must not cross this boundary.
 - `SearchOutcome` keeps empty results distinct from provider and request failures.
+- Cross-origin context compares only compatible routes from the same run and never adds or invents
+  a separate positioning-trip cost.
 
 ## V1 flow
 
