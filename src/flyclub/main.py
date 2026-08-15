@@ -81,6 +81,9 @@ def _print_search_outcome(route: RouteDefinition, outcome: SearchOutcome) -> Non
 def _run_all_routes(
     config: FlyClubConfig, routes: tuple[RouteDefinition, ...], *, dry_run: bool
 ) -> int:
+    from flyclub.alerts.engine import AlertPolicy
+    from flyclub.alerts.service import AlertCoordinator
+    from flyclub.alerts.telegram import TelegramClient
     from flyclub.analysis.deal_score import DealScoreWeights
     from flyclub.analysis.evaluator import AnalysisPolicy, PersistedPriceAnalyzer
     from flyclub.monitor import run_monitor
@@ -93,6 +96,7 @@ def _run_all_routes(
     )
     repository = None if dry_run else PostgresRepository.from_env()
     analyzer = None
+    alert_handler = None
     if repository is not None:
         configured_weights = config.analysis.deal_score_weights
         analyzer = PersistedPriceAnalyzer(
@@ -104,6 +108,17 @@ def _run_all_routes(
                 weights=DealScoreWeights(**configured_weights.model_dump()),
             ),
         )
+        alert_handler = AlertCoordinator(
+            repository,
+            TelegramClient.from_env(),
+            AlertPolicy(
+                exceptional_score=config.alerts.exceptional_score,
+                cooldown_hours=config.alerts.cooldown_hours,
+                min_drop_amount=config.alerts.min_drop_amount,
+                min_drop_percent=config.alerts.min_drop_percent,
+                min_score_samples=config.analysis.min_score_samples,
+            ),
+        )
     summary = run_monitor(
         routes=routes,
         config_fingerprint=config_fingerprint(config),
@@ -111,6 +126,7 @@ def _run_all_routes(
         max_results=config.monitor.max_results_per_route,
         repository=repository,
         analyzer=analyzer,
+        alert_handler=alert_handler,
     )
     mode = "dry-run" if dry_run else "persisted"
     print(f"Fly Club monitor finished: {summary.status.value} ({mode}).")
@@ -119,6 +135,8 @@ def _run_all_routes(
     print(f"Empty routes: {summary.empty_routes}")
     print(f"Failed routes: {summary.failed_routes}")
     print(f"Analyzed routes: {summary.analyzed_routes}")
+    print(f"Alerts sent: {summary.alerts_sent}")
+    print(f"Alerts suppressed: {summary.alerts_suppressed}")
     return 0 if summary.status is RunStatus.SUCCESS else 1
 
 

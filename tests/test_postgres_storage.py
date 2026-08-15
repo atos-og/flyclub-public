@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 import psycopg
 import pytest
 
+from flyclub.alerts.engine import AlertDecision
+from flyclub.alerts.service import AlertDeliveryStatus
 from flyclub.models import (
     CabinClass,
     FlightLeg,
@@ -38,12 +40,16 @@ class FakeCursor:
         history: tuple[Decimal, ...] = (),
         observation_history: tuple[tuple[Decimal, datetime], ...] = (),
         last_alert: tuple[Decimal, datetime] | None = None,
+        duplicate_alert_id: UUID | None = None,
+        duplicate_alert_status: str = "PENDING",
     ) -> None:
         self.duplicate_check_id = duplicate_check_id
         self.rowcount = update_count
         self.history = history
         self.observation_history = observation_history
         self.last_alert = last_alert
+        self.duplicate_alert_id = duplicate_alert_id
+        self.duplicate_alert_status = duplicate_alert_status
         self.executions: list[tuple[str, Any]] = []
         self.batches: list[tuple[str, list[tuple[Any, ...]]]] = []
         self._result: tuple[Any, ...] | None = None
@@ -65,6 +71,14 @@ class FakeCursor:
             self._result = (self.duplicate_check_id,) if self.duplicate_check_id else None
         elif normalized.startswith("SELECT rc.best_price, ah.sent_at"):
             self._result = self.last_alert
+        elif normalized.startswith("INSERT INTO alert_history"):
+            self._result = None if self.duplicate_alert_id else (params[0], params[5])
+        elif normalized.startswith("SELECT id, delivery_status FROM alert_history"):
+            self._result = (
+                (self.duplicate_alert_id, self.duplicate_alert_status)
+                if self.duplicate_alert_id
+                else None
+            )
         else:
             self._result = None
 
@@ -311,6 +325,104 @@ def test_last_sent_alert_price_returns_only_persisted_delivery_reference() -> No
 
 def test_last_sent_alert_price_returns_none_without_delivery() -> None:
     assert _repository(FakeCursor()).last_sent_alert_price(route_key=_route().key) is None
+
+
+def test_send_alert_decision_is_persisted_as_pending() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    route_check_id = uuid4()
+    created_at = datetime(2027, 1, 1, tzinfo=UTC)
+
+    result = repository.record_alert_decision(
+        route_check_id=route_check_id,
+        decision=AlertDecision.SEND,
+        deal_score=94,
+        reason_codes=("NEW_LOW", "EXCEPTIONAL_DEAL"),
+        created_at=created_at,
+    )
+
+    assert result.created is True
+    assert result.delivery_status is AlertDeliveryStatus.PENDING
+    _, params = _execution(cursor, "INSERT INTO alert_history")
+    assert params[1:] == (
+        created_at,
+        "SEND",
+        94,
+        ["NEW_LOW", "EXCEPTIONAL_DEAL"],
+        "PENDING",
+        route_check_id,
+    )
+
+
+def test_suppressed_alert_decision_requires_no_delivery() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+
+    result = repository.record_alert_decision(
+        route_check_id=uuid4(),
+        decision=AlertDecision.SUPPRESS,
+        deal_score=None,
+        reason_codes=("COLD_START",),
+        created_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+
+    assert result.delivery_status is AlertDeliveryStatus.NOT_REQUESTED
+    _, params = _execution(cursor, "INSERT INTO alert_history")
+    assert params[5] == "NOT_REQUESTED"
+
+
+def test_duplicate_alert_decision_returns_existing_record() -> None:
+    existing_alert_id = uuid4()
+    cursor = FakeCursor(
+        duplicate_alert_id=existing_alert_id,
+        duplicate_alert_status="SENT",
+    )
+    repository = _repository(cursor)
+
+    result = repository.record_alert_decision(
+        route_check_id=uuid4(),
+        decision=AlertDecision.SEND,
+        deal_score=90,
+        reason_codes=("PRICE_TARGET",),
+        created_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+
+    assert result.alert_id == existing_alert_id
+    assert result.created is False
+    assert result.delivery_status is AlertDeliveryStatus.SENT
+    _execution(cursor, "SELECT id, delivery_status FROM alert_history")
+
+
+def test_alert_delivery_updates_are_explicit_and_idempotency_guarded() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    alert_id = uuid4()
+    sent_at = datetime(2027, 1, 1, tzinfo=UTC)
+
+    repository.mark_alert_sent(
+        alert_id=alert_id,
+        telegram_message_id="123",
+        sent_at=sent_at,
+    )
+    repository.mark_alert_failed(alert_id=alert_id, error_code="TELEGRAM_API_ERROR")
+
+    updates = [
+        params for query, params in cursor.executions if query.startswith("UPDATE alert_history")
+    ]
+    assert updates == [
+        ("SENT", "123", sent_at, None, alert_id),
+        ("FAILED", None, None, "TELEGRAM_API_ERROR", alert_id),
+    ]
+
+
+def test_alert_delivery_update_rejects_non_pending_record() -> None:
+    repository = _repository(FakeCursor(update_count=0))
+
+    with pytest.raises(StorageError, match="Pending alert delivery was not found"):
+        repository.mark_alert_failed(
+            alert_id=uuid4(),
+            error_code="TELEGRAM_API_ERROR",
+        )
 
 
 def test_option_fingerprint_ignores_volatile_provider_url() -> None:

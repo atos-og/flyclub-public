@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 8 in progress — alert decisions, formatting, and Telegram delivery foundations.
+Phase 8 complete — persisted, idempotent Telegram alert delivery is operational locally.
 
 ## Done
 
@@ -81,32 +81,40 @@ Phase 8 in progress — alert decisions, formatting, and Telegram delivery found
   warning, and only a validated provider URL when one exists.
 - A minimal sanitized Telegram Bot API client is implemented with no additional dependency and no
   credential values in code or logs.
+- The private Telegram bot and chat were configured through the ignored `.env`, and one controlled
+  live delivery succeeded.
+- Every successful persisted route check now receives one idempotent consolidated alert decision.
+- New `SEND` decisions are formatted and delivered once; `SENT`, `FAILED`, and `NOT_REQUESTED`
+  delivery states are persisted in `alert_history`.
+- Existing route-check decisions are never resent, and monitor output reports only aggregate sent
+  and suppressed counters.
+- A complete live cycle collected and analyzed eight routes, persisted eight suppressions, and sent
+  no itinerary alert during cold start.
 
 ## In progress
 
-- Alert Engine and Telegram foundations are on `agent/alert-engine`, pending publication and review.
+- Automatic alert persistence and delivery are on `agent/telegram-delivery`, pending publication
+  and review.
 
 ## Next
 
-- Publish and integrate the alert foundations.
-- Configure a private Telegram bot/chat, persist decisions, and validate one controlled test
-  delivery before wiring automatic sends.
+- Publish and integrate automatic Telegram delivery.
+- Add the private GitHub Actions monitor workflow and configure its GitHub Secrets.
 
 ## Known issues
 
-- Alert decisions are not persisted or invoked by the monitor yet.
-- No real Telegram delivery or GitHub Actions workflow exists yet.
+- No GitHub Actions workflow exists yet, so monitoring still depends on an explicit local run.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
 
 ## Last validation
 
-Date: 2026-08-14
+Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 115 passed, 92% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 126 passed, 92% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -134,3 +142,6 @@ Manual checks:
 - First real persisted cycle: eight successful routes, zero empty results, and zero failures.
 - Integrated persisted analysis cycle: eight successful and analyzed routes, zero empty results,
   and zero failures; cold-start sample sizes correctly produced no statistically eligible score.
+- Controlled Telegram delivery: one sanitized test message was accepted by the configured bot.
+- Integrated alert cycle: eight successful and analyzed routes, eight persisted `SUPPRESS` /
+  `NOT_REQUESTED` decisions, zero delivery attempts, and zero failures.

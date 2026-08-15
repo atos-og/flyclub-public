@@ -8,10 +8,20 @@ from flyclub.alerts.engine import (
     decide_alert,
 )
 from flyclub.alerts.formatter import format_alert_message
+from flyclub.alerts.service import (
+    AlertCoordinator,
+    AlertDecisionRecord,
+    AlertDeliveryStatus,
+    AlertHandlingResult,
+)
 from flyclub.alerts.telegram import TelegramClient, TelegramDelivery, TelegramError
 
 __all__ = [
+    "AlertCoordinator",
     "AlertDecision",
+    "AlertDecisionRecord",
+    "AlertDeliveryStatus",
+    "AlertHandlingResult",
     "AlertPolicy",
     "AlertReason",
     "AlertResult",

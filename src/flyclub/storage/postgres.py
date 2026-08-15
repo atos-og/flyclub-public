@@ -15,6 +15,8 @@ from uuid import UUID, uuid4
 import psycopg
 from psycopg.types.json import Jsonb
 
+from flyclub.alerts.engine import AlertDecision
+from flyclub.alerts.service import AlertDecisionRecord, AlertDeliveryStatus
 from flyclub.models import (
     FlightOption,
     PriceObservation,
@@ -339,6 +341,129 @@ class PostgresRepository:
         except psycopg.Error as error:
             self._raise_sanitized(error)
         raise StorageError("Last alert price query ended unexpectedly")
+
+    def record_alert_decision(
+        self,
+        *,
+        route_check_id: UUID,
+        decision: AlertDecision,
+        deal_score: int | None,
+        reason_codes: tuple[str, ...],
+        created_at: datetime,
+    ) -> AlertDecisionRecord:
+        """Persist one idempotent consolidated decision for a route check."""
+
+        alert_id = uuid4()
+        delivery_status = (
+            AlertDeliveryStatus.PENDING
+            if decision is AlertDecision.SEND
+            else AlertDeliveryStatus.NOT_REQUESTED
+        )
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO alert_history (
+                        id, route_id, route_check_id, created_at, decision, deal_score,
+                        reason_codes, delivery_status
+                    )
+                    SELECT %s, rc.route_id, rc.id, %s, %s, %s, %s, %s
+                    FROM route_checks AS rc
+                    WHERE rc.id = %s
+                    ON CONFLICT (route_check_id) DO NOTHING
+                    RETURNING id, delivery_status
+                    """,
+                    (
+                        alert_id,
+                        created_at,
+                        decision.value,
+                        deal_score,
+                        list(reason_codes),
+                        delivery_status.value,
+                        route_check_id,
+                    ),
+                )
+                inserted = cursor.fetchone()
+                if inserted is not None:
+                    return AlertDecisionRecord(
+                        alert_id=inserted[0],
+                        created=True,
+                        delivery_status=AlertDeliveryStatus(inserted[1]),
+                    )
+                cursor.execute(
+                    """
+                    SELECT id, delivery_status
+                    FROM alert_history
+                    WHERE route_check_id = %s
+                    """,
+                    (route_check_id,),
+                )
+                existing = cursor.fetchone()
+                if existing is None:
+                    raise StorageError("Alert decision could not be persisted")
+                return AlertDecisionRecord(
+                    alert_id=existing[0],
+                    created=False,
+                    delivery_status=AlertDeliveryStatus(existing[1]),
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Alert decision persistence ended unexpectedly")
+
+    def mark_alert_sent(
+        self,
+        *,
+        alert_id: UUID,
+        telegram_message_id: str,
+        sent_at: datetime,
+    ) -> None:
+        self._update_alert_delivery(
+            alert_id=alert_id,
+            status=AlertDeliveryStatus.SENT,
+            telegram_message_id=telegram_message_id,
+            sent_at=sent_at,
+            error_code=None,
+        )
+
+    def mark_alert_failed(self, *, alert_id: UUID, error_code: str) -> None:
+        self._update_alert_delivery(
+            alert_id=alert_id,
+            status=AlertDeliveryStatus.FAILED,
+            telegram_message_id=None,
+            sent_at=None,
+            error_code=error_code,
+        )
+
+    def _update_alert_delivery(
+        self,
+        *,
+        alert_id: UUID,
+        status: AlertDeliveryStatus,
+        telegram_message_id: str | None,
+        sent_at: datetime | None,
+        error_code: str | None,
+    ) -> None:
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE alert_history
+                    SET delivery_status = %s, telegram_message_id = %s,
+                        sent_at = %s, error_code = %s
+                    WHERE id = %s AND delivery_status = 'PENDING'
+                    """,
+                    (
+                        status.value,
+                        telegram_message_id,
+                        sent_at,
+                        error_code,
+                        alert_id,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise StorageError("Pending alert delivery was not found")
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
 
     def update_provider_health(
         self,

@@ -94,6 +94,8 @@ def test_cli_runs_full_monitor_in_safe_dry_run_mode(
     assert "Planned routes: 6" in output
     assert "Successful routes: 6" in output
     assert "Analyzed routes: 0" in output
+    assert "Alerts sent: 0" in output
+    assert "Alerts suppressed: 0" in output
     assert "LIS" not in output
     assert "https://" not in output
 

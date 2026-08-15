@@ -5,9 +5,10 @@ flight prices periodically, build a trustworthy history, classify genuinely unus
 send low-noise Telegram alerts.
 
 The project currently validates route configuration, searches Google Flights, persists every
-result in PostgreSQL, and evaluates successful prices against prior-only history with deterministic
-statistics, trend, confidence, and Deal Score. The monitor runs all configured routes sequentially
-with safe aggregate output; alert delivery and scheduled execution are not configured yet.
+result in PostgreSQL, evaluates successful prices against prior-only history with deterministic
+statistics, trend, confidence, and Deal Score, and sends consolidated low-noise Telegram alerts.
+The monitor runs all configured routes sequentially with safe aggregate output; scheduled execution
+is the remaining operational step.
 
 ## Principles
 
@@ -84,6 +85,11 @@ omit `--dry-run` to persist the complete monitor cycle:
 ```bash
 flyclub --monitor
 ```
+
+A persisted cycle also records one idempotent alert decision per successful route check. A new
+`SEND` decision is delivered through Telegram and marked `SENT` or `FAILED`; an existing decision
+is never sent again. Telegram credentials are read only from `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_CHAT_ID`.
 
 ## PostgreSQL migrations
 

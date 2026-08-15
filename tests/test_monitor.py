@@ -4,6 +4,8 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
+from flyclub.alerts.engine import AlertDecision, AlertReason, AlertResult
+from flyclub.alerts.service import AlertHandlingResult
 from flyclub.config import load_config
 from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.monitor import MonitorSummary, run_monitor
@@ -69,6 +71,16 @@ class FakeAnalyzer:
         return object()
 
 
+class FakeAlertHandler:
+    def __init__(self, results: list[AlertHandlingResult]) -> None:
+        self._results = iter(results)
+        self.handled: list[dict[str, object]] = []
+
+    def handle(self, **kwargs: object) -> AlertHandlingResult:
+        self.handled.append(kwargs)
+        return next(self._results)
+
+
 def _routes(count: int = 3) -> tuple[RouteDefinition, ...]:
     return plan_routes(load_config(EXAMPLE_PATH))[:count]
 
@@ -99,6 +111,7 @@ def _run(
     *,
     repository: FakeRepository | None = None,
     analyzer: FakeAnalyzer | None = None,
+    alert_handler: FakeAlertHandler | None = None,
 ) -> tuple[MonitorSummary, FakeProvider]:
     routes = _routes(len(outcomes))
     provider = FakeProvider(outcomes)
@@ -110,6 +123,7 @@ def _run(
         max_results=5,
         repository=repository,
         analyzer=analyzer,
+        alert_handler=alert_handler,
     )
     return summary, provider
 
@@ -134,6 +148,8 @@ def test_monitor_queries_routes_sequentially_and_persists_every_outcome() -> Non
     assert summary.empty_routes == 1
     assert summary.failed_routes == 0
     assert summary.analyzed_routes == 0
+    assert summary.alerts_sent == 0
+    assert summary.alerts_suppressed == 0
     assert summary.persisted is True
 
 
@@ -245,6 +261,43 @@ def test_analysis_failure_aborts_and_closes_the_run() -> None:
 
     assert repository.finished[0]["status"] is RunStatus.FAILURE
     assert repository.finished[0]["error_code"] == "MONITOR_ABORTED"
+
+
+def test_monitor_counts_delivered_and_suppressed_alerts() -> None:
+    repository = FakeRepository()
+    analyzer = FakeAnalyzer()
+    sent = AlertHandlingResult(
+        alert=AlertResult(AlertDecision.SEND, (AlertReason.PRICE_TARGET,)),
+        delivered=True,
+    )
+    suppressed = AlertHandlingResult(
+        alert=AlertResult(AlertDecision.SUPPRESS, (AlertReason.NO_TRIGGER,)),
+        delivered=False,
+    )
+    handler = FakeAlertHandler([sent, suppressed])
+
+    summary, _ = _run(
+        [_success(), _success()],
+        repository=repository,
+        analyzer=analyzer,
+        alert_handler=handler,
+    )
+
+    assert summary.alerts_sent == 1
+    assert summary.alerts_suppressed == 1
+    assert len(handler.handled) == 2
+
+
+def test_alert_handler_requires_analyzer() -> None:
+    repository = FakeRepository()
+    handler = FakeAlertHandler([])
+
+    try:
+        _run([_success()], repository=repository, alert_handler=handler)
+    except ValueError as error:
+        assert str(error) == "alert handler requires an analyzer"
+    else:
+        raise AssertionError("Alert handling without analysis should fail")
 
 
 def test_monitor_attempts_to_finish_failed_run_after_persistence_error() -> None:

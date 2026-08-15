@@ -9,7 +9,10 @@ from decimal import Decimal
 from typing import Protocol
 from uuid import UUID, uuid4
 
-from flyclub.models import RouteDefinition, SearchOutcome, SearchStatus
+from flyclub.alerts.engine import AlertDecision
+from flyclub.alerts.service import AlertHandlingResult
+from flyclub.analysis.evaluator import RoutePriceEvaluation
+from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.providers.base import FlightProvider
 from flyclub.storage.postgres import ProviderHealthStatus, RunStatus
 
@@ -65,7 +68,19 @@ class RouteAnalyzer(Protocol):
         current_check_id: UUID,
         current_price: Decimal,
         current_at: datetime,
-    ) -> object: ...
+    ) -> RoutePriceEvaluation: ...
+
+
+class AlertHandler(Protocol):
+    def handle(
+        self,
+        *,
+        route: RouteDefinition,
+        current_check_id: UUID,
+        current_option: FlightOption,
+        current_at: datetime,
+        evaluation: RoutePriceEvaluation,
+    ) -> AlertHandlingResult: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +92,8 @@ class MonitorSummary:
     empty_routes: int
     failed_routes: int
     analyzed_routes: int
+    alerts_sent: int
+    alerts_suppressed: int
     persisted: bool
 
 
@@ -128,12 +145,15 @@ def run_monitor(
     max_results: int,
     repository: MonitorRepository | None,
     analyzer: RouteAnalyzer | None = None,
+    alert_handler: AlertHandler | None = None,
     run_id: UUID | None = None,
 ) -> MonitorSummary:
     """Search every route sequentially and optionally persist every outcome."""
 
     if analyzer is not None and repository is None:
         raise ValueError("analyzer requires a persistence repository")
+    if alert_handler is not None and analyzer is None:
+        raise ValueError("alert handler requires an analyzer")
     selected_run_id = run_id or uuid4()
     if repository is not None:
         repository.start_run(
@@ -147,6 +167,8 @@ def run_monitor(
     empty = 0
     failed = 0
     analyzed = 0
+    alerts_sent = 0
+    alerts_suppressed = 0
     outcomes: list[SearchOutcome] = []
 
     try:
@@ -165,13 +187,26 @@ def run_monitor(
                     checked_at=checked_at,
                 )
                 if analyzer is not None and outcome.status is SearchStatus.SUCCESS:
-                    analyzer.evaluate(
+                    current_option = min(outcome.options, key=lambda option: option.price)
+                    evaluation = analyzer.evaluate(
                         route_key=route.key,
                         current_check_id=check_id,
-                        current_price=min(option.price for option in outcome.options),
+                        current_price=current_option.price,
                         current_at=checked_at,
                     )
                     analyzed += 1
+                    if alert_handler is not None:
+                        handling = alert_handler.handle(
+                            route=route,
+                            current_check_id=check_id,
+                            current_option=current_option,
+                            current_at=checked_at,
+                            evaluation=evaluation,
+                        )
+                        if handling.delivered:
+                            alerts_sent += 1
+                        elif handling.alert.decision is AlertDecision.SUPPRESS:
+                            alerts_suppressed += 1
 
             if outcome.status is SearchStatus.SUCCESS:
                 successful += 1
@@ -220,5 +255,7 @@ def run_monitor(
         empty_routes=empty,
         failed_routes=failed,
         analyzed_routes=analyzed,
+        alerts_sent=alerts_sent,
+        alerts_suppressed=alerts_suppressed,
         persisted=repository is not None,
     )
