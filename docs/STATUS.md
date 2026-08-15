@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 12 in progress — external GitHub Actions heartbeat implemented; activation pending.
+Phase 12 complete — external GitHub Actions heartbeat operational.
 
 ## Done
 
@@ -119,11 +119,16 @@ Phase 12 in progress — external GitHub Actions heartbeat implemented; activati
   Healthchecks library, service, database, API, worker, or route-level check was added.
 - Workflow contract tests verify ping order, bounded best-effort behavior, failure handling, secret
   sourcing, and absence of a committed Healthchecks endpoint.
+- The private `HEALTHCHECKS_PING_URL` Repository Secret and one native Healthchecks.io Telegram
+  integration were configured without exposing the Ping URL.
+- PR #14 passed CI and was squash-merged into `main`.
+- The first heartbeat-enabled manual production run completed in 1m31s: `/start`, eight successful
+  and analyzed routes, eight suppressions, zero fare/health alerts, zero failures, and the final
+  success ping all completed without runtime warnings.
 
 ## In progress
 
-- Create the single `Fly Club Monitor` check, configure its native Telegram integration, add the
-  private Ping URL as a GitHub Repository Secret, and validate one manual workflow dispatch.
+- None.
 
 ## Next
 
@@ -181,3 +186,5 @@ Manual checks:
   passed; the exact synthetic row was removed.
 - Integrated same-run comparison cycle: eight successful/analyzed routes, eight suppressions, zero
   fare/health alerts, and zero failures.
+- GitHub Actions heartbeat production dispatch: start and completion steps succeeded, the persisted
+  monitor completed eight of eight routes successfully, and no runtime warning was emitted.
