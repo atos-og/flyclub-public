@@ -63,6 +63,12 @@ Schedules in Brasília time:
 If the console cannot select several hours in one job, create sixteen jobs instead, one for each
 displayed time. Do not paste the token into the URL or request body.
 
+The private production deployment was activated on 2026-08-15 with both grouped jobs enabled,
+response-body storage disabled, and failure/recovery notifications enabled. Its initial test
+returned GitHub's expected `204 No Content`; the dispatched monitor then completed successfully,
+including the Healthchecks start and completion steps. The credential was created with a finite
+90-day expiration and must be rotated before it expires.
+
 ## Validation and fallback
 
 1. Use cron-job.org's test-run function on one job.

@@ -170,6 +170,10 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
 - A public setup guide documents a repository-only fine-grained `Actions: write` token kept in the
   external scheduler, two grouped cron-job.org jobs covering all 16 Brasília times, validation,
   rotation, and fallback behavior without committing credentials.
+- The private cron-job.org deployment is active with both grouped jobs enabled: minute 17 over
+  hours 00/03/06/09/12/15/18/21 and minute 47 over hours 01/04/07/10/13/16/19/22 in
+  `America/Sao_Paulo`. Together they dispatch the monitor every 90 minutes. Response storage is
+  disabled and failure/recovery notifications are enabled.
 - The Healthchecks.io `Fly Club Monitor` check now uses a 90-minute Simple period with the existing
   one-hour grace window, verified in the account after the workflow deployment.
 - PR #17 passed CI and was squash-merged into `main`; the remote workflow exposes both alternating
@@ -243,6 +247,9 @@ Manual checks:
   #17 merged.
 - Healthchecks.io `Fly Club Monitor`: 90-minute period and one-hour grace time verified in the
   authenticated account.
+- External scheduler production validation: cron-job.org returned GitHub's expected
+  `204 No Content`; workflow-dispatch run `31912701651` then completed successfully in 2m13s,
+  including both Healthchecks notification steps.
 - Passenger-scoped production validation: eight new isolated series received one successful
   observation each, with provider health remaining `HEALTHY` and no notification sent.
 - Round-trip price diagnostic: 30 live requests completed without persistence; 716 option pairs
