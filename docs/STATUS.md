@@ -257,6 +257,11 @@ Manual checks:
   was found and diagnosed; the following GitHub Actions run parsed it successfully.
 - First flexible-date production shard: 24 independent routes completed in 4m58s; 22 were
   successful/analyzed, two were empty, none failed, and all 22 alert decisions were suppressed.
+- First discovery production run: 30 independent routes completed in 6m00s; 24 were
+  successful/analyzed, six were empty, none failed, and all 24 alert decisions were suppressed.
+  At 13 runs/month, the measured runtime projects about 78 billed Actions minutes/month.
 - Personal travel dates that had been reused as inert manual-confirmation test fixtures were
-  replaced with synthetic dates and airports in the current tree. Historical commit sanitation is
-  pending an explicit history-rewrite decision while the repository remains private.
+  replaced with synthetic values throughout the default-branch Git history. A protected force-push
+  and fresh-clone scan verified that `main` no longer contains them. GitHub retains the original
+  closed-PR ref outside the branch owner's control, so removing that separate ref before public
+  visibility requires either GitHub Support or repository recreation.
