@@ -243,15 +243,16 @@ short-lived alternative-date fares.
 
 ## DEC-016 — Optional discovery markets
 
-Status: Accepted, scheduling pending cost approval
+Status: Accepted and scheduled after cost approval
 
 Context: Broader destinations should find opportunistic travel without competing with the primary
 trip or resetting its statistical meaning.
 
 Decision: Model discovery as a distinct route kind over selected existing origin markets. Use 60
 as the Americas/Brazil threshold and 90 for three European gateways, retain all confidence and
-cooldown safeguards, and make alerts visually distinct. Keep the workflow manual-only until the
-estimated Actions usage is explicitly approved.
+cooldown safeguards, and make alerts visually distinct. After explicit cost approval, run the
+workflow every Monday, Wednesday, and Saturday at 06:23 Brasília time while retaining manual
+dispatch.
 
 Reason: Thirty curated routes cover the requested interests without pretending an unbounded
 "anywhere" search exists in the provider or flooding the main monitor.

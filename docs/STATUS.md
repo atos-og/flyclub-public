@@ -98,8 +98,9 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   with `🗓️ DATA FLEXÍVEL`.
 - Thirty optional discovery routes now cover 15 curated destinations from BH and São Paulo with
   isolated `DISCOVERY` histories, 60-point Americas/Brazil and 90-point Europe thresholds, and
-  `🔎 DESCOBERTA` messages. The workflow is manual-only pending explicit schedule-cost approval.
-  A proposed three-runs-per-week schedule would add about 13 runs/month; using the observed route
+  `🔎 DESCOBERTA` messages. After explicit schedule-cost approval, the workflow runs every Monday,
+  Wednesday, and Saturday at 06:23 Brasília time and remains manually dispatchable. Its three
+  runs per week add about 13 runs/month; using the observed route
   timings, the conservative estimate is 6–12 minutes/run and 78–156 Actions minutes/month, plus
   390 route checks and up to 1,950 snapshots/month.
 - Deal Score `daily-median-v2` now runs in write-only shadow mode beside v1. It reduces each

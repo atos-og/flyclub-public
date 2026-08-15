@@ -154,11 +154,11 @@ without placing all 48 private searches in one job. Each date pair is an isolate
 series, and any Telegram opportunity starts with `🗓️ DATA FLEXÍVEL`. The fixed-date 90-minute
 monitor remains unchanged.
 
-The optional **Scan discovery markets** workflow is intentionally manual-only until its Actions
-budget is approved. It plans 30 independent routes across the configured BH and São Paulo markets,
-uses a score threshold of 60 for selected Americas/Brazil destinations and 90 for Europe, and
-prefixes Telegram messages with `🔎 DESCOBERTA`. Discovery history never mixes with the main trip,
-even when an airport is present in both lists.
+The **Scan discovery markets** workflow runs every Monday, Wednesday, and Saturday at 06:23
+Brasília time and also supports manual dispatch. It plans 30 independent routes across the
+configured BH and São Paulo markets, uses a score threshold of 60 for selected Americas/Brazil
+destinations and 90 for Europe, and prefixes Telegram messages with `🔎 DESCOBERTA`. Discovery
+history never mixes with the main trip, even when an airport is present in both lists.
 
 ## PostgreSQL migrations
 

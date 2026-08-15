@@ -8,11 +8,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "discovery.yml"
 
 
-def test_discovery_workflow_is_manual_only_until_cost_approval() -> None:
+def test_discovery_workflow_runs_three_times_per_week_after_cost_approval() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "workflow_dispatch:" in text
-    assert "schedule:" not in text
+    assert "schedule:" in text
+    assert 'cron: "23 9 * * 1,3,6"' in text
     assert "flyclub-discovery" in text
     assert "HEALTHCHECKS_PING_URL" not in text
 
