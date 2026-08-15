@@ -123,6 +123,9 @@ Do not place the connection string in shell history, committed files, or command
 
 At the end of each persisted monitor run, Fly Club records aggregate provider health as `HEALTHY`,
 `DEGRADED`, `UNAVAILABLE`, or `PROVIDER_CHANGED`, including incident and recovery state.
+After the configured number of consecutive problem runs (three by default), it sends one Telegram
+warning. A reported incident receives one recovery message when the provider becomes healthy again;
+both notifications remain pending for retry until a successful delivery is recorded.
 
 ## Configuration precedence
 

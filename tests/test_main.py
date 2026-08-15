@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from flyclub.alerts.telegram import TelegramError
 from flyclub.main import cli
 from flyclub.models import FlightOption, SearchOutcome, SearchStatus
 
@@ -96,6 +97,7 @@ def test_cli_runs_full_monitor_in_safe_dry_run_mode(
     assert "Analyzed routes: 0" in output
     assert "Alerts sent: 0" in output
     assert "Alerts suppressed: 0" in output
+    assert "Health alerts sent: 0" in output
     assert "LIS" not in output
     assert "https://" not in output
 
@@ -120,3 +122,15 @@ def test_cli_loads_dotenv_without_overriding_environment(
 
     assert cli(["--config", "config/routes.example.yaml"]) == 0
     assert calls == [False]
+
+
+def test_cli_reports_notification_failure_without_traceback(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fail_monitor(*_args: object, **_kwargs: object) -> int:
+        raise TelegramError("sanitized Telegram failure")
+
+    monkeypatch.setattr("flyclub.main._run_all_routes", fail_monitor)
+
+    assert cli(["--config", "config/routes.example.yaml", "--monitor"]) == 1
+    assert "Notification error: sanitized Telegram failure" in capsys.readouterr().err

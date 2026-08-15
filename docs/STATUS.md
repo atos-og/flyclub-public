@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 9 in progress — private GitHub Actions scheduling and CI.
+Phase 10 complete — deduplicated provider problem and recovery alerts.
 
 ## Done
 
@@ -93,21 +93,31 @@ Phase 9 in progress — private GitHub Actions scheduling and CI.
 - Least-privilege CI and monitor workflows use Python 3.12 and immutable full-SHA official actions.
 - The monitor schedule avoids the top of the hour, prevents overlapping runs, validates required
   secret presence, applies migrations, and supports manual dispatch.
+- The four private GitHub Secrets were configured without exposing their values.
+- CI passed on GitHub, and the first manual monitor dispatch completed in 1m45s with eight
+  successful routes, eight analyses, eight suppressions, and zero failures.
+- Provider health warnings become eligible after three consecutive problem runs by default.
+- Problem and recovery notifications have persistent sent markers, do not repeat, and remain
+  eligible for retry when Telegram delivery fails.
+- Migration `002_provider_health_notifications` was applied once and its immediate rerun applied
+  zero migrations.
+- Live synthetic provider-health transitions validated three consecutive failures, warning state,
+  recovery state, deduplication, and cleanup without sending a real health message.
 
 ## In progress
 
-- GitHub Actions workflows are on `agent/github-actions`, pending publication, secret configuration,
-  and one manual production dispatch.
+- None.
 
 ## Next
 
-- Publish and integrate the GitHub Actions workflows.
-- Configure the four private repository secrets and validate one manual production dispatch.
+- Add the current-run comparison between Belo Horizonte and São Paulo origin groups for actionable
+  fare context.
+- Perform the dedicated V1 security, documentation, license, and acknowledgements review before
+  considering public visibility.
 
 ## Known issues
 
-- Monitoring remains dependent on explicit local runs until the workflow is merged, its secrets are
-  configured, and its first manual dispatch succeeds.
+- Cross-origin BH versus São Paulo price context is not included in alerts yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -118,7 +128,7 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 126 passed, 92% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 139 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -149,3 +159,9 @@ Manual checks:
 - Controlled Telegram delivery: one sanitized test message was accepted by the configured bot.
 - Integrated alert cycle: eight successful and analyzed routes, eight persisted `SUPPRESS` /
   `NOT_REQUESTED` decisions, zero delivery attempts, and zero failures.
+- GitHub CI: first pull-request run passed in 33 seconds.
+- GitHub Actions production dispatch: migrations zero, eight successful/analyzed routes, eight
+  suppressions, zero price alerts, zero failures, completed in 1m45s.
+- Live migration 002: one migration applied; immediate rerun applied zero.
+- Live synthetic provider-health notifications: problem/recovery markers and retry-safe transitions
+  passed; the exact synthetic row was removed.

@@ -10,11 +10,13 @@ from typing import Protocol
 from uuid import UUID, uuid4
 
 from flyclub.alerts.engine import AlertDecision
+from flyclub.alerts.health import HealthNotificationResult
 from flyclub.alerts.service import AlertHandlingResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
+from flyclub.health import ProviderHealthState, ProviderHealthStatus
 from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.providers.base import FlightProvider
-from flyclub.storage.postgres import ProviderHealthStatus, RunStatus
+from flyclub.storage.postgres import RunStatus
 
 
 class MonitorRepository(Protocol):
@@ -57,7 +59,7 @@ class MonitorRepository(Protocol):
         status: ProviderHealthStatus,
         attempted_at: datetime | None = None,
         error_code: str | None = None,
-    ) -> None: ...
+    ) -> ProviderHealthState: ...
 
 
 class RouteAnalyzer(Protocol):
@@ -83,6 +85,10 @@ class AlertHandler(Protocol):
     ) -> AlertHandlingResult: ...
 
 
+class HealthHandler(Protocol):
+    def handle(self, state: ProviderHealthState) -> HealthNotificationResult: ...
+
+
 @dataclass(frozen=True, slots=True)
 class MonitorSummary:
     run_id: UUID
@@ -94,6 +100,7 @@ class MonitorSummary:
     analyzed_routes: int
     alerts_sent: int
     alerts_suppressed: int
+    health_alerts_sent: int
     persisted: bool
 
 
@@ -146,6 +153,7 @@ def run_monitor(
     repository: MonitorRepository | None,
     analyzer: RouteAnalyzer | None = None,
     alert_handler: AlertHandler | None = None,
+    health_handler: HealthHandler | None = None,
     run_id: UUID | None = None,
 ) -> MonitorSummary:
     """Search every route sequentially and optionally persist every outcome."""
@@ -154,6 +162,8 @@ def run_monitor(
         raise ValueError("analyzer requires a persistence repository")
     if alert_handler is not None and analyzer is None:
         raise ValueError("alert handler requires an analyzer")
+    if health_handler is not None and repository is None:
+        raise ValueError("health handler requires a persistence repository")
     selected_run_id = run_id or uuid4()
     if repository is not None:
         repository.start_run(
@@ -169,6 +179,7 @@ def run_monitor(
     analyzed = 0
     alerts_sent = 0
     alerts_suppressed = 0
+    health_alerts_sent = 0
     outcomes: list[SearchOutcome] = []
 
     try:
@@ -241,11 +252,13 @@ def run_monitor(
             error_message="One or more route searches failed" if failed else None,
         )
         health_status, health_error_code = _provider_health(outcomes)
-        repository.update_provider_health(
+        health_state = repository.update_provider_health(
             provider=provider.name,
             status=health_status,
             error_code=health_error_code,
         )
+        if health_handler is not None and health_handler.handle(health_state).delivered:
+            health_alerts_sent += 1
 
     return MonitorSummary(
         run_id=selected_run_id,
@@ -257,5 +270,6 @@ def run_monitor(
         analyzed_routes=analyzed,
         alerts_sent=alerts_sent,
         alerts_suppressed=alerts_suppressed,
+        health_alerts_sent=health_alerts_sent,
         persisted=repository is not None,
     )

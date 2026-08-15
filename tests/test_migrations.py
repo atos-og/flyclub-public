@@ -43,7 +43,7 @@ class MigrationConnection:
 def test_initial_migration_contains_all_principal_entities() -> None:
     discovered = migrations.discover_migrations()
 
-    assert [migration.version for migration in discovered] == [1]
+    assert [migration.version for migration in discovered] == [1, 2]
     sql = discovered[0].sql
     for table in (
         "monitored_routes",
@@ -56,6 +56,8 @@ def test_initial_migration_contains_all_principal_entities() -> None:
         assert f"CREATE TABLE {table}" in sql
     assert "NUMERIC(12, 2)" in sql
     assert "UNIQUE (run_id, route_id, provider)" in sql
+    assert "problem_alert_sent_at" in discovered[1].sql
+    assert "recovery_alert_sent_at" in discovered[1].sql
 
 
 def test_apply_migrations_executes_pending_sql(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -66,16 +68,19 @@ def test_apply_migrations_executes_pending_sql(monkeypatch: pytest.MonkeyPatch) 
         lambda _database_url: MigrationConnection(cursor),
     )
 
-    assert migrations.apply_migrations("postgresql://test.invalid/flyclub") == 1
+    assert migrations.apply_migrations("postgresql://test.invalid/flyclub") == 2
 
     statements = [query for query, _ in cursor.executions]
     assert any("CREATE TABLE monitored_routes" in query for query in statements)
+    assert any("ALTER TABLE provider_health" in query for query in statements)
     assert any("INSERT INTO flyclub_schema_migrations" in query for query in statements)
 
 
 def test_apply_migrations_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
-    migration = migrations.discover_migrations()[0]
-    cursor = MigrationCursor(applied=[(migration.version, migration.checksum)])
+    discovered = migrations.discover_migrations()
+    cursor = MigrationCursor(
+        applied=[(migration.version, migration.checksum) for migration in discovered]
+    )
     monkeypatch.setattr(
         migrations.psycopg,
         "connect",

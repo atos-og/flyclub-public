@@ -144,6 +144,10 @@ class AlertConfig(StrictModel):
     min_drop_percent: Decimal = Field(default=Decimal("5"), ge=0, le=100)
 
 
+class HealthConfig(StrictModel):
+    problem_alert_after_runs: int = Field(default=3, ge=1, le=24)
+
+
 class FlyClubConfig(StrictModel):
     trip: TripConfig
     origins: dict[str, OriginGroupConfig] = Field(min_length=1)
@@ -151,6 +155,7 @@ class FlyClubConfig(StrictModel):
     monitor: MonitorConfig = MonitorConfig()
     analysis: AnalysisConfig = AnalysisConfig()
     alerts: AlertConfig = AlertConfig()
+    health: HealthConfig = HealthConfig()
 
     @field_validator("origins")
     @classmethod

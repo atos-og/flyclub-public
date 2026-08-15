@@ -8,6 +8,7 @@ from flyclub.alerts.engine import (
     decide_alert,
 )
 from flyclub.alerts.formatter import format_alert_message
+from flyclub.alerts.health import HealthNotificationResult, ProviderHealthCoordinator
 from flyclub.alerts.service import (
     AlertCoordinator,
     AlertDecisionRecord,
@@ -25,6 +26,8 @@ __all__ = [
     "AlertPolicy",
     "AlertReason",
     "AlertResult",
+    "HealthNotificationResult",
+    "ProviderHealthCoordinator",
     "TelegramClient",
     "TelegramDelivery",
     "TelegramError",

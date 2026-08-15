@@ -17,6 +17,7 @@ from psycopg.types.json import Jsonb
 
 from flyclub.alerts.engine import AlertDecision
 from flyclub.alerts.service import AlertDecisionRecord, AlertDeliveryStatus
+from flyclub.health import HealthNotificationKind, ProviderHealthState, ProviderHealthStatus
 from flyclub.models import (
     FlightOption,
     PriceObservation,
@@ -41,13 +42,6 @@ class RunStatus(StrEnum):
     SUCCESS = "SUCCESS"
     PARTIAL = "PARTIAL"
     FAILURE = "FAILURE"
-
-
-class ProviderHealthStatus(StrEnum):
-    HEALTHY = "HEALTHY"
-    DEGRADED = "DEGRADED"
-    UNAVAILABLE = "UNAVAILABLE"
-    PROVIDER_CHANGED = "PROVIDER_CHANGED"
 
 
 def database_url_from_env() -> str:
@@ -472,7 +466,7 @@ class PostgresRepository:
         status: ProviderHealthStatus,
         attempted_at: datetime | None = None,
         error_code: str | None = None,
-    ) -> None:
+    ) -> ProviderHealthState:
         """Record one aggregate provider-health observation for a completed monitor run."""
 
         observed_at = attempted_at or _now()
@@ -514,7 +508,22 @@ class PostgresRepository:
                             WHEN EXCLUDED.current_status = 'HEALTHY' THEN NULL
                             ELSE EXCLUDED.last_error_code
                         END,
+                        problem_alert_sent_at = CASE
+                            WHEN provider_health.current_status = 'HEALTHY'
+                                 AND EXCLUDED.current_status <> 'HEALTHY'
+                                THEN NULL
+                            ELSE provider_health.problem_alert_sent_at
+                        END,
+                        recovery_alert_sent_at = CASE
+                            WHEN provider_health.current_status = 'HEALTHY'
+                                 AND EXCLUDED.current_status <> 'HEALTHY'
+                                THEN NULL
+                            ELSE provider_health.recovery_alert_sent_at
+                        END,
                         updated_at = EXCLUDED.updated_at
+                    RETURNING provider, current_status, last_success_at,
+                              consecutive_problem_runs, incident_started_at,
+                              problem_alert_sent_at, recovery_alert_sent_at
                     """,
                     (
                         provider,
@@ -527,6 +536,54 @@ class PostgresRepository:
                         observed_at,
                     ),
                 )
+                persisted = cursor.fetchone()
+                if persisted is None:
+                    raise StorageError("Provider health state could not be persisted")
+                return ProviderHealthState(
+                    provider=persisted[0],
+                    status=ProviderHealthStatus(persisted[1]),
+                    last_success_at=persisted[2],
+                    consecutive_problem_runs=persisted[3],
+                    incident_started_at=persisted[4],
+                    problem_alert_sent_at=persisted[5],
+                    recovery_alert_sent_at=persisted[6],
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Provider health persistence ended unexpectedly")
+
+    def mark_provider_health_notification(
+        self,
+        *,
+        provider: str,
+        kind: HealthNotificationKind,
+        sent_at: datetime | None = None,
+    ) -> None:
+        """Mark one delivered incident notification without allowing duplicate acknowledgement."""
+
+        observed_at = sent_at or _now()
+        if kind is HealthNotificationKind.PROBLEM:
+            query = """
+                UPDATE provider_health
+                SET problem_alert_sent_at = %s
+                WHERE provider = %s
+                  AND current_status <> 'HEALTHY'
+                  AND problem_alert_sent_at IS NULL
+            """
+        else:
+            query = """
+                UPDATE provider_health
+                SET recovery_alert_sent_at = %s
+                WHERE provider = %s
+                  AND current_status = 'HEALTHY'
+                  AND problem_alert_sent_at IS NOT NULL
+                  AND recovery_alert_sent_at IS NULL
+            """
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(query, (observed_at, provider))
+                if cursor.rowcount != 1:
+                    raise StorageError("Provider health notification was not pending")
         except psycopg.Error as error:
             self._raise_sanitized(error)
 

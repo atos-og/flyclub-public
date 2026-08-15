@@ -8,6 +8,7 @@ from collections.abc import Sequence
 
 from dotenv import load_dotenv
 
+from flyclub.alerts.telegram import TelegramError
 from flyclub.config import ConfigError, FlyClubConfig, load_config
 from flyclub.models import RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.route_planner import config_fingerprint, plan_routes
@@ -82,6 +83,7 @@ def _run_all_routes(
     config: FlyClubConfig, routes: tuple[RouteDefinition, ...], *, dry_run: bool
 ) -> int:
     from flyclub.alerts.engine import AlertPolicy
+    from flyclub.alerts.health import ProviderHealthCoordinator
     from flyclub.alerts.service import AlertCoordinator
     from flyclub.alerts.telegram import TelegramClient
     from flyclub.analysis.deal_score import DealScoreWeights
@@ -97,7 +99,9 @@ def _run_all_routes(
     repository = None if dry_run else PostgresRepository.from_env()
     analyzer = None
     alert_handler = None
+    health_handler = None
     if repository is not None:
+        telegram = TelegramClient.from_env()
         configured_weights = config.analysis.deal_score_weights
         analyzer = PersistedPriceAnalyzer(
             repository,
@@ -110,7 +114,7 @@ def _run_all_routes(
         )
         alert_handler = AlertCoordinator(
             repository,
-            TelegramClient.from_env(),
+            telegram,
             AlertPolicy(
                 exceptional_score=config.alerts.exceptional_score,
                 cooldown_hours=config.alerts.cooldown_hours,
@@ -118,6 +122,11 @@ def _run_all_routes(
                 min_drop_percent=config.alerts.min_drop_percent,
                 min_score_samples=config.analysis.min_score_samples,
             ),
+        )
+        health_handler = ProviderHealthCoordinator(
+            repository,
+            telegram,
+            problem_alert_after_runs=config.health.problem_alert_after_runs,
         )
     summary = run_monitor(
         routes=routes,
@@ -127,6 +136,7 @@ def _run_all_routes(
         repository=repository,
         analyzer=analyzer,
         alert_handler=alert_handler,
+        health_handler=health_handler,
     )
     mode = "dry-run" if dry_run else "persisted"
     print(f"Fly Club monitor finished: {summary.status.value} ({mode}).")
@@ -137,6 +147,7 @@ def _run_all_routes(
     print(f"Analyzed routes: {summary.analyzed_routes}")
     print(f"Alerts sent: {summary.alerts_sent}")
     print(f"Alerts suppressed: {summary.alerts_suppressed}")
+    print(f"Health alerts sent: {summary.health_alerts_sent}")
     return 0 if summary.status is RunStatus.SUCCESS else 1
 
 
@@ -159,6 +170,9 @@ def cli(argv: Sequence[str] | None = None) -> int:
             return _run_all_routes(config, routes, dry_run=args.dry_run)
         except StorageError as error:
             print(f"Storage error: {error}", file=sys.stderr)
+            return 1
+        except TelegramError as error:
+            print(f"Notification error: {error}", file=sys.stderr)
             return 1
 
     if args.search_route:

@@ -5,12 +5,14 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from flyclub.alerts.engine import AlertDecision, AlertReason, AlertResult
+from flyclub.alerts.health import HealthNotificationResult
 from flyclub.alerts.service import AlertHandlingResult
 from flyclub.config import load_config
+from flyclub.health import HealthNotificationKind, ProviderHealthState, ProviderHealthStatus
 from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.monitor import MonitorSummary, run_monitor
 from flyclub.route_planner import config_fingerprint, plan_routes
-from flyclub.storage.postgres import ProviderHealthStatus, RunStatus
+from flyclub.storage.postgres import RunStatus
 
 EXAMPLE_PATH = Path("config/routes.example.yaml")
 
@@ -55,8 +57,19 @@ class FakeRepository:
         if self.fail_finish:
             raise RuntimeError("database finish failed")
 
-    def update_provider_health(self, **kwargs: object) -> None:
+    def update_provider_health(self, **kwargs: object) -> ProviderHealthState:
         self.health.append(kwargs)
+        status = kwargs["status"]
+        assert isinstance(status, ProviderHealthStatus)
+        return ProviderHealthState(
+            provider="fake_flights",
+            status=status,
+            last_success_at=None,
+            consecutive_problem_runs=0 if status is ProviderHealthStatus.HEALTHY else 1,
+            incident_started_at=None,
+            problem_alert_sent_at=None,
+            recovery_alert_sent_at=None,
+        )
 
 
 class FakeAnalyzer:
@@ -79,6 +92,16 @@ class FakeAlertHandler:
     def handle(self, **kwargs: object) -> AlertHandlingResult:
         self.handled.append(kwargs)
         return next(self._results)
+
+
+class FakeHealthHandler:
+    def __init__(self, result: HealthNotificationResult) -> None:
+        self.result = result
+        self.states: list[ProviderHealthState] = []
+
+    def handle(self, state: ProviderHealthState) -> HealthNotificationResult:
+        self.states.append(state)
+        return self.result
 
 
 def _routes(count: int = 3) -> tuple[RouteDefinition, ...]:
@@ -112,6 +135,7 @@ def _run(
     repository: FakeRepository | None = None,
     analyzer: FakeAnalyzer | None = None,
     alert_handler: FakeAlertHandler | None = None,
+    health_handler: FakeHealthHandler | None = None,
 ) -> tuple[MonitorSummary, FakeProvider]:
     routes = _routes(len(outcomes))
     provider = FakeProvider(outcomes)
@@ -124,6 +148,7 @@ def _run(
         repository=repository,
         analyzer=analyzer,
         alert_handler=alert_handler,
+        health_handler=health_handler,
     )
     return summary, provider
 
@@ -150,6 +175,7 @@ def test_monitor_queries_routes_sequentially_and_persists_every_outcome() -> Non
     assert summary.analyzed_routes == 0
     assert summary.alerts_sent == 0
     assert summary.alerts_suppressed == 0
+    assert summary.health_alerts_sent == 0
     assert summary.persisted is True
 
 
@@ -298,6 +324,29 @@ def test_alert_handler_requires_analyzer() -> None:
         assert str(error) == "alert handler requires an analyzer"
     else:
         raise AssertionError("Alert handling without analysis should fail")
+
+
+def test_monitor_counts_delivered_health_alert() -> None:
+    repository = FakeRepository()
+    handler = FakeHealthHandler(
+        HealthNotificationResult(kind=HealthNotificationKind.PROBLEM, delivered=True)
+    )
+
+    summary, _ = _run([_failure()], repository=repository, health_handler=handler)
+
+    assert summary.health_alerts_sent == 1
+    assert handler.states[0].status is ProviderHealthStatus.UNAVAILABLE
+
+
+def test_health_handler_requires_persistence() -> None:
+    handler = FakeHealthHandler(HealthNotificationResult(kind=None, delivered=False))
+
+    try:
+        _run([_success()], health_handler=handler)
+    except ValueError as error:
+        assert str(error) == "health handler requires a persistence repository"
+    else:
+        raise AssertionError("Health handling without persistence should fail")
 
 
 def test_monitor_attempts_to_finish_failed_run_after_persistence_error() -> None:

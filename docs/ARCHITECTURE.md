@@ -66,6 +66,7 @@ database writes.
 - `flyclub.analysis.evaluator`: loads the prior-only comparable series and last delivered alert,
   prefers a valid 24-hour drop reference with last alert as fallback, and runs the complete pure
   analysis pipeline after each persisted successful check.
+- `flyclub.health`: owns provider-health status and notification state shared across boundaries.
 - `flyclub.alerts.engine`: consolidates price target, new low, exceptional score, and significant
   drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
 - `flyclub.alerts.formatter`: builds a short plain-text message from normalized route, itinerary,
@@ -74,6 +75,8 @@ database writes.
   API.
 - `flyclub.alerts.service`: persists each consolidated decision, sends only a newly created `SEND`,
   and records Telegram delivery success or failure without resending an existing route check.
+- `flyclub.alerts.health`: sends one warning after the configured consecutive-problem threshold and
+  one recovery after a reported incident, with persistent deduplication and retry-on-failure state.
 - `flyclub.main`: exposes configuration validation, explicit single-route search, and full monitor
   commands.
 
@@ -97,7 +100,7 @@ Config → Route Planner → Monitor Runner → FlightProvider → GoogleFlights
        → Alert Engine → Telegram
 ```
 
-The monitor will run as a short-lived GitHub Actions job approximately every three hours. It will
+The monitor runs as a short-lived GitHub Actions job approximately every three hours. It
 start, collect, store, analyze, optionally notify, record health, and exit.
 
 ## Persistence
@@ -114,10 +117,11 @@ The initial PostgreSQL migration implements these principal entities:
 The repository records one best valid route price per `route_check`, not every returned itinerary,
 while retaining all normalized options in `price_snapshots`. Its history query requires the current
 check ID and excludes it from the returned baseline. Provider health records consecutive problem
-runs, incident start, last success, and recovery. Each route check receives at most one persisted
-alert decision; delivery progresses from `PENDING` to `SENT` or `FAILED`, while suppressed decisions
-use `NOT_REQUESTED`. The initial migration and repository were validated against a live Supabase
-PostgreSQL project with synthetic data removed afterward.
+runs, incident start, last success, recovery, and delivered problem/recovery notification markers.
+Each route check receives at most one persisted alert decision; delivery progresses from `PENDING`
+to `SENT` or `FAILED`, while suppressed decisions use `NOT_REQUESTED`. Both migrations and the
+repository transitions were validated against a live Supabase PostgreSQL project with synthetic
+data removed afterward.
 
 ## External integrations
 
@@ -126,8 +130,9 @@ PostgreSQL project with synthetic data removed afterward.
 - Supabase PostgreSQL through `psycopg`: provisioned, migrated, and validated with idempotent
   migrations and complete synthetic persistence/cleanup smoke tests.
 - Telegram Bot API: configured, live-tested, and connected to idempotent monitor delivery.
-- GitHub Actions: a least-privilege, non-overlapping monitor workflow is defined for manual dispatch
-  and minute 17 every three hours; CI separately validates pushes and pull requests.
+- GitHub Actions: the least-privilege, non-overlapping monitor runs manually and at minute 17 every
+  three hours; its first production dispatch succeeded. CI separately validates pushes and pull
+  requests.
 - External dead-man switch: proposed to detect missing GitHub Actions executions; not accepted as
   operational until configured by the user.
 

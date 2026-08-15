@@ -10,6 +10,7 @@ import pytest
 
 from flyclub.alerts.engine import AlertDecision
 from flyclub.alerts.service import AlertDeliveryStatus
+from flyclub.health import HealthNotificationKind, ProviderHealthStatus
 from flyclub.models import (
     CabinClass,
     FlightLeg,
@@ -22,7 +23,6 @@ from flyclub.models import (
 )
 from flyclub.storage.postgres import (
     PostgresRepository,
-    ProviderHealthStatus,
     RunStatus,
     StorageConfigError,
     StorageError,
@@ -42,6 +42,7 @@ class FakeCursor:
         last_alert: tuple[Decimal, datetime] | None = None,
         duplicate_alert_id: UUID | None = None,
         duplicate_alert_status: str = "PENDING",
+        provider_health_result: tuple[Any, ...] | None = None,
     ) -> None:
         self.duplicate_check_id = duplicate_check_id
         self.rowcount = update_count
@@ -50,6 +51,7 @@ class FakeCursor:
         self.last_alert = last_alert
         self.duplicate_alert_id = duplicate_alert_id
         self.duplicate_alert_status = duplicate_alert_status
+        self.provider_health_result = provider_health_result
         self.executions: list[tuple[str, Any]] = []
         self.batches: list[tuple[str, list[tuple[Any, ...]]]] = []
         self._result: tuple[Any, ...] | None = None
@@ -78,6 +80,16 @@ class FakeCursor:
                 (self.duplicate_alert_id, self.duplicate_alert_status)
                 if self.duplicate_alert_id
                 else None
+            )
+        elif normalized.startswith("INSERT INTO provider_health"):
+            self._result = self.provider_health_result or (
+                params[0],
+                params[1],
+                params[3],
+                params[4],
+                params[5],
+                None,
+                None,
             )
         else:
             self._result = None
@@ -479,7 +491,7 @@ def test_provider_health_persists_healthy_state_without_error() -> None:
     repository = _repository(cursor)
     observed_at = datetime(2027, 1, 1, tzinfo=UTC)
 
-    repository.update_provider_health(
+    state = repository.update_provider_health(
         provider="google_flights",
         status=ProviderHealthStatus.HEALTHY,
         attempted_at=observed_at,
@@ -496,6 +508,8 @@ def test_provider_health_persists_healthy_state_without_error() -> None:
         None,
         observed_at,
     )
+    assert state.status is ProviderHealthStatus.HEALTHY
+    assert state.consecutive_problem_runs == 0
 
 
 def test_provider_health_persists_problem_and_error_code() -> None:
@@ -503,7 +517,7 @@ def test_provider_health_persists_problem_and_error_code() -> None:
     repository = _repository(cursor)
     observed_at = datetime(2027, 1, 1, tzinfo=UTC)
 
-    repository.update_provider_health(
+    state = repository.update_provider_health(
         provider="google_flights",
         status=ProviderHealthStatus.PROVIDER_CHANGED,
         attempted_at=observed_at,
@@ -516,3 +530,66 @@ def test_provider_health_persists_problem_and_error_code() -> None:
     assert params[4] == 1
     assert params[5] == observed_at
     assert params[6] == "SEARCH_PARSE_ERROR"
+    assert state.status is ProviderHealthStatus.PROVIDER_CHANGED
+    assert state.consecutive_problem_runs == 1
+
+
+def test_provider_health_returns_existing_notification_state() -> None:
+    problem_sent_at = datetime(2027, 1, 2, tzinfo=UTC)
+    cursor = FakeCursor(
+        provider_health_result=(
+            "google_flights",
+            "UNAVAILABLE",
+            datetime(2027, 1, 1, tzinfo=UTC),
+            4,
+            datetime(2027, 1, 2, tzinfo=UTC),
+            problem_sent_at,
+            None,
+        )
+    )
+
+    state = _repository(cursor).update_provider_health(
+        provider="google_flights",
+        status=ProviderHealthStatus.UNAVAILABLE,
+    )
+
+    assert state.consecutive_problem_runs == 4
+    assert state.problem_alert_sent_at == problem_sent_at
+    assert state.recovery_alert_sent_at is None
+
+
+def test_provider_health_notification_delivery_is_guarded() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    sent_at = datetime(2027, 1, 1, tzinfo=UTC)
+
+    repository.mark_provider_health_notification(
+        provider="google_flights",
+        kind=HealthNotificationKind.PROBLEM,
+        sent_at=sent_at,
+    )
+    repository.mark_provider_health_notification(
+        provider="google_flights",
+        kind=HealthNotificationKind.RECOVERY,
+        sent_at=sent_at,
+    )
+
+    updates = [
+        (query, params)
+        for query, params in cursor.executions
+        if query.startswith("UPDATE provider_health")
+    ]
+    assert len(updates) == 2
+    assert updates[0][1] == (sent_at, "google_flights")
+    assert "current_status <> 'HEALTHY'" in updates[0][0]
+    assert "current_status = 'HEALTHY'" in updates[1][0]
+
+
+def test_provider_health_notification_rejects_non_pending_state() -> None:
+    repository = _repository(FakeCursor(update_count=0))
+
+    with pytest.raises(StorageError, match="notification was not pending"):
+        repository.mark_provider_health_notification(
+            provider="google_flights",
+            kind=HealthNotificationKind.PROBLEM,
+        )
