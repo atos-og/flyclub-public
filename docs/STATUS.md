@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 13 complete — 90-minute production monitoring cadence implemented.
+Phase 14 complete — passenger-scoped fare monitoring operational.
 
 ## Done
 
@@ -82,6 +82,10 @@ Phase 13 complete — 90-minute production monitoring cadence implemented.
   only a validated provider URL when one exists.
 - The alert price line explicitly labels the configured passenger count with correct singular or
   plural wording, preventing a one-passenger total from being mistaken for a group total.
+- A private passenger-count change generated new comparable route keys while retaining the prior
+  series separately; no historical prices crossed the comparability boundary.
+- The first production dispatch after that change completed in 1m54s with eight successful and
+  analyzed routes, eight cold-start suppressions, zero empty/failed routes, and zero alerts.
 - A minimal sanitized Telegram Bot API client is implemented with no additional dependency and no
   credential values in code or logs.
 - The private Telegram bot and chat were configured through the ignored `.env`, and one controlled
@@ -204,3 +208,5 @@ Manual checks:
   #17 merged.
 - Healthchecks.io `Fly Club Monitor`: 90-minute period and one-hour grace time verified in the
   authenticated account.
+- Passenger-scoped production validation: eight new isolated series received one successful
+  observation each, with provider health remaining `HEALTHY` and no notification sent.
