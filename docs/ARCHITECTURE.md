@@ -44,6 +44,8 @@ database writes.
 - `flyclub.config`: loads YAML from a GitHub Secret or ignored local file, validates it with
   Pydantic, and formats errors without echoing input values.
 - `flyclub.route_planner`: expands origin groups × destinations and creates stable route keys.
+  A dedicated planner shifts complete trips across six non-zero ±3-day offsets and includes the
+  flexible-series kind in otherwise date-specific identities without changing existing main keys.
 - `flyclub.models`: owns provider-neutral enums and immutable route, leg, option, and search
   outcome models. Money is represented by `Decimal`.
 - `flyclub.providers.base`: defines the `FlightProvider` protocol.
@@ -84,6 +86,8 @@ database writes.
   commands.
 - `flyclub.manual_confirmation`: validates four explicit workflow inputs, performs one
   two-passenger search, and sends a clearly tagged Telegram result without persistence or analysis.
+- `flyclub.flexible_dates`: runs the normal persisted analysis/alert pipeline over isolated shifted
+  fixed-duration routes without changing core provider-health notification state.
 
 ## Component boundaries
 

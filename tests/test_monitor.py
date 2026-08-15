@@ -392,6 +392,23 @@ def test_health_handler_requires_persistence() -> None:
         raise AssertionError("Health handling without persistence should fail")
 
 
+def test_auxiliary_monitor_can_leave_provider_health_unchanged() -> None:
+    repository = FakeRepository()
+    routes = _routes(1)
+
+    summary = run_monitor(
+        routes=routes,
+        config_fingerprint="flexible",
+        provider=FakeProvider([_success()]),
+        max_results=5,
+        repository=repository,
+        update_health=False,
+    )
+
+    assert summary.status is RunStatus.SUCCESS
+    assert repository.health == []
+
+
 def test_monitor_attempts_to_finish_failed_run_after_persistence_error() -> None:
     repository = FakeRepository(fail_check=True)
 

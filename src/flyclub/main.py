@@ -80,7 +80,11 @@ def _print_search_outcome(route: RouteDefinition, outcome: SearchOutcome) -> Non
 
 
 def _run_all_routes(
-    config: FlyClubConfig, routes: tuple[RouteDefinition, ...], *, dry_run: bool
+    config: FlyClubConfig,
+    routes: tuple[RouteDefinition, ...],
+    *,
+    dry_run: bool,
+    include_health: bool = True,
 ) -> int:
     from flyclub.alerts.engine import AlertPolicy
     from flyclub.alerts.health import ProviderHealthCoordinator
@@ -124,11 +128,12 @@ def _run_all_routes(
             ),
             positioning_context_min_savings=config.alerts.positioning_context_min_savings,
         )
-        health_handler = ProviderHealthCoordinator(
-            repository,
-            telegram,
-            problem_alert_after_runs=config.health.problem_alert_after_runs,
-        )
+        if include_health:
+            health_handler = ProviderHealthCoordinator(
+                repository,
+                telegram,
+                problem_alert_after_runs=config.health.problem_alert_after_runs,
+            )
     summary = run_monitor(
         routes=routes,
         config_fingerprint=config_fingerprint(config),
@@ -138,6 +143,7 @@ def _run_all_routes(
         analyzer=analyzer,
         alert_handler=alert_handler,
         health_handler=health_handler,
+        update_health=include_health,
     )
     mode = "dry-run" if dry_run else "persisted"
     print(f"Fly Club monitor finished: {summary.status.value} ({mode}).")

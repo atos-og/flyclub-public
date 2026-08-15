@@ -91,6 +91,11 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
 - A separate manually dispatched workflow confirms one explicit itinerary for exactly two Economy
   passengers, sends the total and per-person amount to Telegram, and never persists or analyzes the
   result. Automatic alerts scoring at least 80 with moderate/high confidence link to this check.
+- A separate flexible-date workflow shifts the complete trip across six non-zero ±3-day offsets in
+  two daily 24-route shards, avoiding one long 48-route job while keeping provider calls sequential.
+  Each pair receives one daily observation in an isolated `FLEXIBLE` route key, reuses
+  persistence/analysis/alerts, omits core provider-health updates, and prefixes Telegram messages
+  with `🗓️ DATA FLEXÍVEL`.
 - A private passenger-count change generated new comparable route keys while retaining the prior
   series separately; no historical prices crossed the comparability boundary.
 - The first production dispatch after that change completed in 1m54s with eight successful and

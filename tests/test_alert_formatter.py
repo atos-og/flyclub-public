@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
@@ -21,6 +22,7 @@ from flyclub.models import (
     OriginPriceComparison,
     OriginRole,
     RouteDefinition,
+    RouteKind,
 )
 
 
@@ -204,3 +206,13 @@ def test_manual_confirmation_is_clearly_tagged_and_scoped_to_two_passengers() ->
     assert "R$ 3.030,00 total · 2 passageiros" in message
     assert "Por pessoa: R$ 1.515,00" in message
     assert "não altera o histórico nem dispara o Deal Score" in message
+
+
+def test_flexible_date_alert_is_visually_distinct() -> None:
+    flexible = replace(_route(), kind=RouteKind.FLEXIBLE)
+
+    message = format_alert_message(
+        route=flexible, option=_option(), evaluation=_evaluation(), alert=_alert()
+    )
+
+    assert message.startswith("🗓️ DATA FLEXÍVEL EXCEPCIONAL")

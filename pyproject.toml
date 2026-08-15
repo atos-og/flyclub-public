@@ -27,6 +27,7 @@ dev = [
 flyclub = "flyclub.main:cli"
 flyclub-confirm-two = "flyclub.manual_confirmation:cli"
 flyclub-db-migrate = "flyclub.storage.migrations:cli"
+flyclub-flexible-dates = "flyclub.flexible_dates:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flyclub"]

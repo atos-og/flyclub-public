@@ -176,6 +176,7 @@ def _comparison_key(route: RouteDefinition) -> tuple[object, ...]:
         route.cabin,
         route.currency,
         route.max_stops,
+        route.kind,
     )
 
 
@@ -193,6 +194,7 @@ def run_monitor(
     analyzer: RouteAnalyzer | None = None,
     alert_handler: AlertHandler | None = None,
     health_handler: HealthHandler | None = None,
+    update_health: bool = True,
     run_id: UUID | None = None,
 ) -> MonitorSummary:
     """Search every route sequentially and optionally persist every outcome."""
@@ -203,6 +205,8 @@ def run_monitor(
         raise ValueError("alert handler requires an analyzer")
     if health_handler is not None and repository is None:
         raise ValueError("health handler requires a persistence repository")
+    if health_handler is not None and not update_health:
+        raise ValueError("health handler requires provider health updates")
     selected_run_id = run_id or uuid4()
     if repository is not None:
         repository.start_run(
@@ -324,14 +328,15 @@ def run_monitor(
             error_code="ROUTE_FAILURES" if failed else None,
             error_message="One or more route searches failed" if failed else None,
         )
-        health_status, health_error_code = _provider_health(outcomes)
-        health_state = repository.update_provider_health(
-            provider=provider.name,
-            status=health_status,
-            error_code=health_error_code,
-        )
-        if health_handler is not None and health_handler.handle(health_state).delivered:
-            health_alerts_sent += 1
+        if update_health:
+            health_status, health_error_code = _provider_health(outcomes)
+            health_state = repository.update_provider_health(
+                provider=provider.name,
+                status=health_status,
+                error_code=health_error_code,
+            )
+            if health_handler is not None and health_handler.handle(health_state).delivered:
+                health_alerts_sent += 1
 
     return MonitorSummary(
         run_id=selected_run_id,

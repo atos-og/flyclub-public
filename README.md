@@ -135,6 +135,13 @@ enter one origin IATA code, destination, departure date, and return date. The sp
 uses two Economy passengers in BRL, sends a clearly tagged Telegram message, and never reads or
 writes the statistical database.
 
+The independent **Scan flexible dates** workflow uses two daily shards at 04:33 and 16:33 Brasília
+time. The first scans −3, −2, and −1 days; the second scans +1, +2, and +3 days. This preserves
+trip duration, keeps provider calls sequential, and gives every offset one observation per day
+without placing all 48 private searches in one job. Each date pair is an isolated statistical
+series, and any Telegram opportunity starts with `🗓️ DATA FLEXÍVEL`. The fixed-date 90-minute
+monitor remains unchanged.
+
 ## PostgreSQL migrations
 
 Fly Club reads its PostgreSQL connection string only from `DATABASE_URL`. After configuring an

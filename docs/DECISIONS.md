@@ -216,3 +216,22 @@ Reason: This gives actionable context without mixing incompatible tickets or inv
 
 Trade-offs: Fare decisions occur at the end of the collection cycle, and no comparison is shown if
 the matching HOME route is empty or fails.
+
+## DEC-015 — Daily fixed-duration flexible-date scan
+
+Status: Accepted
+
+Context: A full ±3-day departure/return matrix would create 392 provider requests for the current
+eight routes and increase timeout/blocking risk.
+
+Decision: Run one separate workflow in two daily, non-overlapping shards over six non-zero offsets,
+shifting departure and return together by −3 through +3 days while preserving trip duration. Keep
+every date pair in a route kind and date-specific statistical series, and label its alerts as
+flexible-date opportunities.
+
+Reason: Forty-eight daily requests materially expand opportunity coverage without multiplying the
+primary 90-minute workload or requiring paid infrastructure. Splitting them into two sequential
+24-route runs preserves timeout margin without parallel provider calls.
+
+Trade-offs: The scan does not test every possible trip length, and once-daily sampling can miss
+short-lived alternative-date fares.

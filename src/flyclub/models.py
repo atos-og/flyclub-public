@@ -27,6 +27,12 @@ class OriginRole(StrEnum):
     POSITIONING = "POSITIONING"
 
 
+class RouteKind(StrEnum):
+    MAIN = "MAIN"
+    FLEXIBLE = "FLEXIBLE"
+    DISCOVERY = "DISCOVERY"
+
+
 class SearchStatus(StrEnum):
     SUCCESS = "SUCCESS"
     EMPTY = "EMPTY"
@@ -54,6 +60,7 @@ class RouteDefinition:
     currency: str
     max_stops: MaxStops
     alert_price: Decimal | None
+    kind: RouteKind = RouteKind.MAIN
 
 
 @dataclass(frozen=True, slots=True)

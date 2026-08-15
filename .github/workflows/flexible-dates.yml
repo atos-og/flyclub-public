@@ -1,0 +1,88 @@
+name: Scan flexible dates
+
+on:
+  schedule:
+    - cron: "33 7 * * *"
+    - cron: "33 19 * * *"
+  workflow_dispatch:
+    inputs:
+      offset_group:
+        description: Which three-day offset group to scan
+        required: true
+        default: earlier
+        type: choice
+        options:
+          - earlier
+          - later
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flyclub-flexible-dates
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Fly Club
+        run: python -m pip install .
+
+      - name: Validate required secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for name in DATABASE_URL FLYCLUB_ROUTES_YAML TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Secret ${name} is not configured"
+              missing=1
+            fi
+          done
+          exit "${missing}"
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: flyclub-db-migrate
+
+      - name: Scan shifted fixed-duration trips
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          OFFSET_GROUP: ${{ inputs.offset_group }}
+        shell: bash
+        run: |
+          if [[ "${EVENT_NAME}" == "schedule" && "${EVENT_SCHEDULE}" == "33 7 * * *" ]]; then
+            offsets="-3,-2,-1"
+          elif [[ "${EVENT_NAME}" == "schedule" ]]; then
+            offsets="1,2,3"
+          elif [[ "${OFFSET_GROUP}" == "later" ]]; then
+            offsets="1,2,3"
+          else
+            offsets="-3,-2,-1"
+          fi
+          flyclub-flexible-dates --offsets="${offsets}"

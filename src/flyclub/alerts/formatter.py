@@ -7,7 +7,7 @@ from decimal import ROUND_CEILING, Decimal
 from flyclub.alerts.engine import AlertReason, AlertResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel
-from flyclub.models import FlightOption, OriginPriceComparison, RouteDefinition
+from flyclub.models import FlightOption, OriginPriceComparison, RouteDefinition, RouteKind
 
 MANUAL_CONFIRMATION_WORKFLOW_URL = (
     "https://github.com/atos-og/flyclub/actions/workflows/confirm-two-passengers.yml"
@@ -21,13 +21,19 @@ def _money(value: Decimal, currency: str) -> str:
     return f"{currency} {value:.2f}"
 
 
-def _title(evaluation: RoutePriceEvaluation) -> str:
+def _title(route: RouteDefinition, evaluation: RoutePriceEvaluation) -> str:
     score = evaluation.deal_score.score
+    if route.kind is RouteKind.FLEXIBLE:
+        prefix = "🗓️ DATA FLEXÍVEL"
+    elif route.kind is RouteKind.DISCOVERY:
+        prefix = "🔎 DESCOBERTA"
+    else:
+        prefix = "🔥 OPORTUNIDADE"
     if score is None:
-        return "🔥 OPORTUNIDADE"
+        return prefix
     if score >= 90:
-        return f"🔥 OPORTUNIDADE EXCEPCIONAL · {score}/100"
-    return f"🔥 OPORTUNIDADE · {score}/100"
+        return f"{prefix} EXCEPCIONAL · {score}/100"
+    return f"{prefix} · {score}/100"
 
 
 def _percent(value: Decimal) -> str:
@@ -92,7 +98,7 @@ def format_alert_message(
         stops_text = f"{option.stops} escalas"
 
     lines = [
-        _title(evaluation),
+        _title(route, evaluation),
         "",
         f"✈️ {actual_origin} → {destination}",
         f"📅 {route.departure_date:%d/%m} a {route.return_date:%d/%m} "
