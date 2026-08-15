@@ -80,6 +80,8 @@ Phase 13 complete — 90-minute production monitoring cadence implemented.
 - The compact plain-text formatter shows route, price, monetary and percentage savings, historical
   position in plain language, recorded low, alert reasons, actionable positioning economics, and
   only a validated provider URL when one exists.
+- The alert price line explicitly labels the configured passenger count with correct singular or
+  plural wording, preventing a one-passenger total from being mistaken for a group total.
 - A minimal sanitized Telegram Bot API client is implemented with no additional dependency and no
   credential values in code or logs.
 - The private Telegram bot and chat were configured through the ignored `.env`, and one controlled
@@ -153,7 +155,7 @@ Date: 2026-08-15
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 147 passed, 93% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 148 passed, 93% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.

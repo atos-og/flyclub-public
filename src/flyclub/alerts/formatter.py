@@ -30,6 +30,11 @@ def _percent(value: Decimal) -> str:
     return f"{value.quantize(Decimal('0.1')):.1f}".replace(".", ",") + "%"
 
 
+def _passenger_label(passengers: int) -> str:
+    noun = "passageiro" if passengers == 1 else "passageiros"
+    return f"{passengers} {noun}"
+
+
 def _confidence_label(confidence: ConfidenceLevel) -> str:
     labels = {
         ConfidenceLevel.INSUFFICIENT: "insuficiente",
@@ -89,7 +94,7 @@ def format_alert_message(
         f"📅 {route.departure_date:%d/%m} a {route.return_date:%d/%m} "
         f"· {airline_text} · {stops_text}",
         "",
-        f"💰 {_money(option.price, option.currency)}",
+        f"💰 {_money(option.price, option.currency)} total · {_passenger_label(route.passengers)}",
     ]
 
     if (

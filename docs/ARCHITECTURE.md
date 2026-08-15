@@ -71,7 +71,8 @@ database writes.
 - `flyclub.alerts.engine`: consolidates price target, new low, exceptional score, and significant
   drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
 - `flyclub.alerts.formatter`: builds a short plain-text message from normalized route, itinerary,
-  statistics, score, and alert reasons without inventing missing URLs.
+  passenger-scoped total price, statistics, score, and alert reasons without inventing missing
+  URLs.
 - `flyclub.alerts.telegram`: implements a sanitized standard-library client for the Telegram Bot
   API.
 - `flyclub.alerts.service`: persists each consolidated decision, sends only a newly created `SEND`,

@@ -20,7 +20,7 @@ from flyclub.models import (
 )
 
 
-def _route(*, positioning: bool = False) -> RouteDefinition:
+def _route(*, positioning: bool = False, passengers: int = 2) -> RouteDefinition:
     return RouteDefinition(
         key="example",
         origin_group="from_sp" if positioning else "from_bh",
@@ -34,7 +34,7 @@ def _route(*, positioning: bool = False) -> RouteDefinition:
         destination_name="Lisboa",
         departure_date=date(2027, 7, 1),
         return_date=date(2027, 7, 8),
-        passengers=2,
+        passengers=passengers,
         cabin=CabinClass.ECONOMY,
         currency="BRL",
         max_stops=MaxStops.ANY,
@@ -113,7 +113,7 @@ def test_formatter_builds_short_actionable_explainable_message() -> None:
 ✈️ CNF → Lisboa
 📅 01/07 a 08/07 · TP · 1 escala
 
-💰 R$ 3.030,00
+💰 R$ 3.030,00 total · 2 passageiros
 ↓ R$ 250,00 (7,6%) desde o último alerta
 ↓ R$ 730,00 (19,4%) abaixo do preço típico de R$ 3.760,00
 
@@ -124,6 +124,14 @@ def test_formatter_builds_short_actionable_explainable_message() -> None:
 🔗 Ver oferta: https://www.google.com/travel/flights/example"""
     )
     assert len(message) < 4096
+
+
+def test_formatter_labels_single_passenger_price() -> None:
+    message = format_alert_message(
+        route=_route(passengers=1), option=_option(), evaluation=_evaluation(), alert=_alert()
+    )
+
+    assert "💰 R$ 3.030,00 total · 1 passageiro" in message
 
 
 def test_formatter_warns_when_positioning_trip_starts_in_sao_paulo() -> None:
