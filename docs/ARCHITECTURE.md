@@ -69,7 +69,8 @@ database writes.
   provisional, and travel urgency is excluded.
 - `flyclub.analysis.evaluator`: loads the prior-only comparable series and last delivered alert,
   prefers a valid 24-hour drop reference with last alert as fallback, and runs the complete pure
-  analysis pipeline after each persisted successful check.
+  analysis pipeline after each persisted successful check. It also calculates a daily-median v2
+  shadow score and persists it through a write-only path that alert code never reads.
 - `flyclub.health`: owns provider-health status and notification state shared across boundaries.
 - `flyclub.alerts.engine`: consolidates price target, new low, exceptional score, and significant
   drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
@@ -145,6 +146,7 @@ The initial PostgreSQL migration implements these principal entities:
 - `route_checks`: one result per route and run, including empty and failed checks.
 - `price_snapshots`: normalized individual itinerary options.
 - `alert_history`: consolidated alert decisions and Telegram delivery state.
+- `deal_score_shadow`: versioned, idempotent v2 evaluations kept separate from alert decisions.
 - `provider_health`: last success, consecutive problem runs, current incident, and recovery state.
 
 The repository records one best valid route price per `route_check`, not every returned itinerary,

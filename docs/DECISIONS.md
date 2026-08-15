@@ -258,3 +258,20 @@ Reason: Thirty curated routes cover the requested interests without pretending a
 
 Trade-offs: The destination list is curated rather than exhaustive, and a 60-point discovery alert
 is intentionally less selective than a primary-trip exceptional alert.
+
+## DEC-017 — Deal Score v2 daily-median shadow
+
+Status: Accepted for a 30-day shadow evaluation
+
+Context: Sixteen intraday observations can increase sample confidence without adding equivalent
+seasonal diversity.
+
+Decision: Calculate `daily-median-v2` from one median per Brasília calendar day using the same
+deterministic score components. Persist it in a versioned table for 30 days, but keep production v1
+as the only input to alert decisions. Never promote v2 automatically.
+
+Reason: Shadowing measures the practical effect of correlated-sample reduction without risking the
+working notification policy.
+
+Trade-offs: V2 needs roughly 12 distinct days before its first provisional score and intentionally
+reacts more slowly than intraday v1.

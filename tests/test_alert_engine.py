@@ -10,7 +10,7 @@ from flyclub.alerts.engine import (
     decide_alert,
 )
 from flyclub.analysis.deal_score import DealClassification, DealScoreResult
-from flyclub.analysis.evaluator import RoutePriceEvaluation
+from flyclub.analysis.evaluator import RoutePriceEvaluation, ShadowScoreEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel, PriceStatistics
 from flyclub.analysis.trend import TrendAnalysis, TrendDirection
 from flyclub.models import PriceObservation
@@ -189,3 +189,32 @@ def test_opportunity_can_repeat_after_cooldown() -> None:
 
 def test_alert_policy_has_no_days_to_departure_urgency_field() -> None:
     assert not hasattr(AlertPolicy(), "days_to_departure")
+
+
+def test_shadow_score_never_controls_alert_decision() -> None:
+    production = _evaluation(score=50)
+    shadow = ShadowScoreEvaluation(
+        version="daily-median-v2",
+        statistics=production.statistics,
+        trend=production.trend,
+        recent_drop=None,
+        deal_score=DealScoreResult(
+            99,
+            DealClassification.EXCEPTIONAL,
+            ConfidenceLevel.HIGH,
+            False,
+            (),
+        ),
+    )
+    evaluation = RoutePriceEvaluation(
+        statistics=production.statistics,
+        trend=production.trend,
+        recent_drop=production.recent_drop,
+        deal_score=production.deal_score,
+        shadow=shadow,
+    )
+
+    result = _decide(current="100", evaluation=evaluation)
+
+    assert result.decision is AlertDecision.SUPPRESS
+    assert result.reasons == (AlertReason.NO_TRIGGER,)

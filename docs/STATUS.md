@@ -102,6 +102,10 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   A proposed three-runs-per-week schedule would add about 13 runs/month; using the observed route
   timings, the conservative estimate is 6–12 minutes/run and 78–156 Actions minutes/month, plus
   390 route checks and up to 1,950 snapshots/month.
+- Deal Score `daily-median-v2` now runs in write-only shadow mode beside v1. It reduces each
+  Brasília calendar day to one median, persists versioned metrics in `deal_score_shadow`, and has no
+  code path into alert decisions or Telegram. The first persisted row starts a 30-day observation
+  window documented in `docs/deal-score-v2-shadow.md`; promotion is explicitly manual.
 - A private passenger-count change generated new comparable route keys while retaining the prior
   series separately; no historical prices crossed the comparability boundary.
 - The first production dispatch after that change completed in 1m54s with eight successful and

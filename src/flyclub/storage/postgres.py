@@ -17,6 +17,7 @@ from psycopg.types.json import Jsonb
 
 from flyclub.alerts.engine import AlertDecision
 from flyclub.alerts.service import AlertDecisionRecord, AlertDeliveryStatus
+from flyclub.analysis.evaluator import ShadowScoreEvaluation
 from flyclub.health import HealthNotificationKind, ProviderHealthState, ProviderHealthStatus
 from flyclub.models import (
     FlightOption,
@@ -335,6 +336,88 @@ class PostgresRepository:
         except psycopg.Error as error:
             self._raise_sanitized(error)
         raise StorageError("Last alert price query ended unexpectedly")
+
+    def record_shadow_score(
+        self,
+        *,
+        route_check_id: UUID,
+        evaluated_at: datetime,
+        evaluation: ShadowScoreEvaluation,
+    ) -> None:
+        """Persist one idempotent shadow score that never controls alert delivery."""
+
+        metrics = {
+            "p10": str(evaluation.statistics.p10)
+            if evaluation.statistics.p10 is not None
+            else None,
+            "p50": str(evaluation.statistics.p50)
+            if evaluation.statistics.p50 is not None
+            else None,
+            "p90": str(evaluation.statistics.p90)
+            if evaluation.statistics.p90 is not None
+            else None,
+            "percentile_rank": (
+                str(evaluation.statistics.percentile_rank)
+                if evaluation.statistics.percentile_rank is not None
+                else None
+            ),
+            "recorded_low": (
+                str(evaluation.statistics.recorded_low)
+                if evaluation.statistics.recorded_low is not None
+                else None
+            ),
+            "trend_direction": evaluation.trend.direction.value,
+            "trend_change_percent": (
+                str(evaluation.trend.change_percent)
+                if evaluation.trend.change_percent is not None
+                else None
+            ),
+            "recent_drop_basis": (
+                evaluation.recent_drop.basis.value if evaluation.recent_drop is not None else None
+            ),
+            "recent_drop_percent": (
+                str(evaluation.recent_drop.drop_percent)
+                if evaluation.recent_drop is not None
+                else None
+            ),
+            "components": [
+                {
+                    "name": component.name.value,
+                    "points": str(component.points),
+                    "maximum_points": component.maximum_points,
+                    "metric_percent": str(component.metric_percent),
+                    "detail": component.detail,
+                }
+                for component in evaluation.deal_score.components
+            ],
+        }
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO deal_score_shadow (
+                        route_check_id, route_id, version, evaluated_at, sample_size,
+                        confidence, score, classification, provisional, metrics
+                    )
+                    SELECT rc.id, rc.route_id, %s, %s, %s, %s, %s, %s, %s, %s
+                    FROM route_checks AS rc
+                    WHERE rc.id = %s
+                    ON CONFLICT (route_check_id, version) DO NOTHING
+                    """,
+                    (
+                        evaluation.version,
+                        evaluated_at,
+                        evaluation.statistics.sample_size,
+                        evaluation.statistics.confidence.value,
+                        evaluation.deal_score.score,
+                        evaluation.deal_score.classification.value,
+                        evaluation.deal_score.provisional,
+                        Jsonb(metrics),
+                        route_check_id,
+                    ),
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
 
     def record_alert_decision(
         self,

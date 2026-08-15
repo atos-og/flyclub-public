@@ -10,6 +10,10 @@ import pytest
 
 from flyclub.alerts.engine import AlertDecision
 from flyclub.alerts.service import AlertDeliveryStatus
+from flyclub.analysis.deal_score import DealClassification, DealScoreResult
+from flyclub.analysis.evaluator import ShadowScoreEvaluation
+from flyclub.analysis.statistics import ConfidenceLevel, PriceStatistics
+from flyclub.analysis.trend import TrendAnalysis, TrendDirection
 from flyclub.health import HealthNotificationKind, ProviderHealthStatus
 from flyclub.models import (
     CabinClass,
@@ -337,6 +341,54 @@ def test_last_sent_alert_price_returns_only_persisted_delivery_reference() -> No
 
 def test_last_sent_alert_price_returns_none_without_delivery() -> None:
     assert _repository(FakeCursor()).last_sent_alert_price(route_key=_route().key) is None
+
+
+def test_shadow_score_is_persisted_separately_from_alert_history() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    check_id = uuid4()
+    evaluated_at = datetime(2027, 1, 2, tzinfo=UTC)
+    confidence = ConfidenceLevel.LOW
+    evaluation = ShadowScoreEvaluation(
+        version="daily-median-v2",
+        statistics=PriceStatistics(
+            12,
+            confidence,
+            Decimal("90"),
+            Decimal("100"),
+            Decimal("120"),
+            Decimal("10"),
+            Decimal("85"),
+        ),
+        trend=TrendAnalysis(8, TrendDirection.STABLE, Decimal("0"), Decimal("100"), Decimal("100")),
+        recent_drop=None,
+        deal_score=DealScoreResult(
+            82,
+            DealClassification.GREAT,
+            confidence,
+            True,
+            (),
+        ),
+    )
+
+    repository.record_shadow_score(
+        route_check_id=check_id,
+        evaluated_at=evaluated_at,
+        evaluation=evaluation,
+    )
+
+    _, params = _execution(cursor, "INSERT INTO deal_score_shadow")
+    assert params[:7] == (
+        "daily-median-v2",
+        evaluated_at,
+        12,
+        "LOW",
+        82,
+        "GREAT",
+        True,
+    )
+    assert params[-1] == check_id
+    assert not any(query.startswith("INSERT INTO alert_history") for query, _ in cursor.executions)
 
 
 def test_send_alert_decision_is_persisted_as_pending() -> None:
