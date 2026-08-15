@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 4 integrated — sequential monitor runner with persisted and dry-run modes.
+Phase 5 code complete — live Supabase validation, local `.env`, and provider health.
 
 ## Done
 
@@ -41,23 +41,28 @@ Phase 4 integrated — sequential monitor runner with persisted and dry-run mode
 - `--monitor --dry-run` exercises all provider calls without requiring or writing a database.
 - Monitor summaries omit route endpoints, dates, prices, and booking URLs.
 - PR #3 was validated and squash-merged into `main`.
+- A Supabase Free PostgreSQL project was connected through its Session Pooler.
+- Migration `001_initial` was applied once and an immediate rerun applied zero migrations.
+- Live synthetic persistence created one run, route check, and snapshot with correct relationships.
+- The live history query excluded the current observation, and all synthetic rows were cleaned up.
+- Local CLIs load ignored `.env` values without overriding external environment variables.
+- Provider health derives `HEALTHY`, `DEGRADED`, `UNAVAILABLE`, and `PROVIDER_CHANGED` per run.
+- Live health transitions preserved incident start and consecutive failures, recorded recovery, and
+  cleaned up the synthetic health row.
 
 ## In progress
 
-- Live persistence validation is waiting for a user-provisioned Supabase project and a locally
-  configured `DATABASE_URL`.
+- Phase 5 changes are on `agent/provider-health`, pending publication and review.
 
 ## Next
 
-- Provision a Supabase project, apply the initial migration, and run a live persistence smoke test.
-- Add provider-health state updates after the live persistence path is verified.
+- Publish and integrate Phase 5.
+- Create the ignored real route configuration and run the first real persisted collection cycle.
 
 ## Known issues
 
-- No Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert engine, alert
-  deduplication, or provider-health updater exists yet.
-- No live Supabase database has been provisioned or migrated; SQL behavior is currently covered by
-  repository and migration-runner unit tests with fakes.
+- No Telegram delivery, GitHub Actions workflow, statistics, Deal Score, alert engine, or alert
+  deduplication exists yet.
 - The external dead-man switch remains proposed and requires user approval later.
 - The user's system Python is not currently available on PATH; development validation used the
   local `.venv` created from the Codex Python 3.12 runtime.
@@ -68,7 +73,7 @@ Date: 2026-08-14
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 47 passed, 90% total coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 53 passed, 92% total coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -86,3 +91,8 @@ Manual checks:
   for an integration test.
 - `flyclub --config config/routes.example.yaml --monitor` without `DATABASE_URL`: failed safely
   before any provider call.
+- Live Supabase migration: one migration applied; immediate rerun applied zero.
+- Live synthetic persistence: run/check/snapshot each verified once; current observation excluded;
+  exact synthetic records removed afterward.
+- Live synthetic provider health: consecutive problems, incident, recovery, and cleanup verified.
+- `flyclub-db-migrate` loaded `DATABASE_URL` from ignored `.env` and applied zero pending migrations.

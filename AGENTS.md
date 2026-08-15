@@ -126,6 +126,10 @@ flyclub-db-migrate
 Never pass the database URL as a command argument or print it. Migration tests use fakes; a live
 database validation requires an external PostgreSQL/Supabase instance.
 
+Local CLIs load the ignored `.env` with `override=False`. Environment variables supplied by CI or
+the operating system always take precedence. Tests must mock local environment loading when they
+assert missing-secret behavior and must never connect to the real `.env` database.
+
 ## Git
 
 Make incremental, coherent commits. Avoid both giant mixed commits and trivial commit noise. Use

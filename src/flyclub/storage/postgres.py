@@ -35,6 +35,13 @@ class RunStatus(StrEnum):
     FAILURE = "FAILURE"
 
 
+class ProviderHealthStatus(StrEnum):
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    UNAVAILABLE = "UNAVAILABLE"
+    PROVIDER_CHANGED = "PROVIDER_CHANGED"
+
+
 def database_url_from_env() -> str:
     database_url = os.environ.get(DATABASE_URL_ENV, "").strip()
     if not database_url:
@@ -263,6 +270,71 @@ class PostgresRepository:
         except psycopg.Error as error:
             self._raise_sanitized(error)
         raise StorageError("Price history query ended unexpectedly")
+
+    def update_provider_health(
+        self,
+        *,
+        provider: str,
+        status: ProviderHealthStatus,
+        attempted_at: datetime | None = None,
+        error_code: str | None = None,
+    ) -> None:
+        """Record one aggregate provider-health observation for a completed monitor run."""
+
+        observed_at = attempted_at or _now()
+        healthy = status is ProviderHealthStatus.HEALTHY
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO provider_health (
+                        provider, current_status, last_attempt_at, last_success_at,
+                        consecutive_problem_runs, incident_started_at, recovered_at,
+                        last_error_code, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, NULL, %s, %s)
+                    ON CONFLICT (provider) DO UPDATE SET
+                        current_status = EXCLUDED.current_status,
+                        last_attempt_at = EXCLUDED.last_attempt_at,
+                        last_success_at = CASE
+                            WHEN EXCLUDED.current_status = 'HEALTHY'
+                                THEN EXCLUDED.last_success_at
+                            ELSE provider_health.last_success_at
+                        END,
+                        consecutive_problem_runs = CASE
+                            WHEN EXCLUDED.current_status = 'HEALTHY' THEN 0
+                            ELSE provider_health.consecutive_problem_runs + 1
+                        END,
+                        incident_started_at = CASE
+                            WHEN EXCLUDED.current_status = 'HEALTHY' THEN NULL
+                            WHEN provider_health.incident_started_at IS NULL
+                                THEN EXCLUDED.incident_started_at
+                            ELSE provider_health.incident_started_at
+                        END,
+                        recovered_at = CASE
+                            WHEN EXCLUDED.current_status = 'HEALTHY'
+                                 AND provider_health.current_status <> 'HEALTHY'
+                                THEN EXCLUDED.updated_at
+                            ELSE provider_health.recovered_at
+                        END,
+                        last_error_code = CASE
+                            WHEN EXCLUDED.current_status = 'HEALTHY' THEN NULL
+                            ELSE EXCLUDED.last_error_code
+                        END,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (
+                        provider,
+                        status.value,
+                        observed_at,
+                        observed_at if healthy else None,
+                        0 if healthy else 1,
+                        None if healthy else observed_at,
+                        None if healthy else error_code,
+                        observed_at,
+                    ),
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
 
     @staticmethod
     def _best_price(outcome: SearchOutcome) -> Decimal | None:

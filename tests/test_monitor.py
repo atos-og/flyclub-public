@@ -8,7 +8,7 @@ from flyclub.config import load_config
 from flyclub.models import FlightOption, RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.monitor import MonitorSummary, run_monitor
 from flyclub.route_planner import config_fingerprint, plan_routes
-from flyclub.storage.postgres import RunStatus
+from flyclub.storage.postgres import ProviderHealthStatus, RunStatus
 
 EXAMPLE_PATH = Path("config/routes.example.yaml")
 
@@ -36,6 +36,7 @@ class FakeRepository:
         self.started: list[dict[str, object]] = []
         self.checks: list[dict[str, object]] = []
         self.finished: list[dict[str, object]] = []
+        self.health: list[dict[str, object]] = []
 
     def start_run(self, **kwargs: object) -> UUID:
         self.started.append(kwargs)
@@ -51,6 +52,9 @@ class FakeRepository:
         self.finished.append(kwargs)
         if self.fail_finish:
             raise RuntimeError("database finish failed")
+
+    def update_provider_health(self, **kwargs: object) -> None:
+        self.health.append(kwargs)
 
 
 def _routes(count: int = 3) -> tuple[RouteDefinition, ...]:
@@ -109,6 +113,8 @@ def test_monitor_queries_routes_sequentially_and_persists_every_outcome() -> Non
     run_id = repository.started[0]["run_id"]
     assert all(check["run_id"] == run_id for check in repository.checks)
     assert repository.finished[0]["run_id"] == run_id
+    assert repository.health[0]["status"] is ProviderHealthStatus.HEALTHY
+    assert repository.health[0]["error_code"] is None
     assert summary.status is RunStatus.SUCCESS
     assert summary.successful_routes == 2
     assert summary.empty_routes == 1
@@ -125,15 +131,47 @@ def test_monitor_marks_mixed_provider_results_partial() -> None:
     assert summary.failed_routes == 1
     assert repository.finished[0]["status"] is RunStatus.PARTIAL
     assert repository.finished[0]["error_code"] == "ROUTE_FAILURES"
+    assert repository.health[0]["status"] is ProviderHealthStatus.DEGRADED
+    assert repository.health[0]["error_code"] == "TIMEOUT"
 
 
 def test_monitor_marks_all_failed_results_as_failure() -> None:
-    summary, _ = _run([_failure(), _failure()])
+    repository = FakeRepository()
+    summary, _ = _run([_failure(), _failure()], repository=repository)
 
     assert summary.status is RunStatus.FAILURE
     assert summary.successful_routes == 0
     assert summary.empty_routes == 0
     assert summary.failed_routes == 2
+    assert repository.health[0]["status"] is ProviderHealthStatus.UNAVAILABLE
+
+
+def test_provider_format_change_has_health_priority() -> None:
+    repository = FakeRepository()
+    changed = SearchOutcome(
+        provider="fake_flights",
+        status=SearchStatus.PROVIDER_CHANGED,
+        error_code="SEARCH_PARSE_ERROR",
+    )
+
+    _run([_failure(), changed, _success()], repository=repository)
+
+    assert repository.health[0]["status"] is ProviderHealthStatus.PROVIDER_CHANGED
+    assert repository.health[0]["error_code"] == "SEARCH_PARSE_ERROR"
+
+
+def test_invalid_requests_do_not_mark_provider_unavailable() -> None:
+    repository = FakeRepository()
+    invalid = SearchOutcome(
+        provider="fake_flights",
+        status=SearchStatus.INVALID_REQUEST,
+        error_code="INVALID_ROUTE",
+    )
+
+    _run([invalid, invalid], repository=repository)
+
+    assert repository.health[0]["status"] is ProviderHealthStatus.DEGRADED
+    assert repository.health[0]["error_code"] == "INVALID_ROUTE"
 
 
 def test_monitor_converts_unexpected_provider_exception_and_continues() -> None:

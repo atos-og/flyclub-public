@@ -50,6 +50,10 @@ Copy-Item config/routes.example.yaml config/routes.yaml
 flyclub
 ```
 
+Local commands automatically load the ignored `.env` file without overriding variables already
+provided by the operating system or GitHub Actions. Keep real values only in `.env`; the tracked
+`.env.example` must contain variable names with empty values.
+
 To inspect the planned endpoints locally:
 
 ```bash
@@ -93,6 +97,9 @@ flyclub-db-migrate
 Migrations are checksum-protected and serialized with a PostgreSQL advisory lock. The initial
 schema keeps route checks separate from itinerary snapshots and uses `NUMERIC(12, 2)` for money.
 Do not place the connection string in shell history, committed files, or command arguments.
+
+At the end of each persisted monitor run, Fly Club records aggregate provider health as `HEALTHY`,
+`DEGRADED`, `UNAVAILABLE`, or `PROVIDER_CHANGED`, including incident and recovery state.
 
 ## Configuration precedence
 

@@ -96,3 +96,15 @@ def test_applied_migration_checksum_cannot_change(monkeypatch: pytest.MonkeyPatc
 
     with pytest.raises(StorageError, match="checksum changed"):
         migrations.apply_migrations("postgresql://test.invalid/flyclub")
+
+
+def test_migration_cli_loads_dotenv_without_overriding_environment(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[bool] = []
+    monkeypatch.setattr(migrations, "load_dotenv", lambda *, override: calls.append(override))
+    monkeypatch.setattr(migrations, "apply_migrations", lambda: 0)
+
+    assert migrations.cli([]) == 0
+    assert calls == [False]
+    assert "Applied migrations: 0" in capsys.readouterr().out

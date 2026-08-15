@@ -6,6 +6,8 @@ import argparse
 import sys
 from collections.abc import Sequence
 
+from dotenv import load_dotenv
+
 from flyclub.config import ConfigError, FlyClubConfig, load_config
 from flyclub.models import RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.route_planner import config_fingerprint, plan_routes
@@ -105,6 +107,7 @@ def _run_all_routes(
 
 
 def cli(argv: Sequence[str] | None = None) -> int:
+    load_dotenv(override=False)
     args = _build_parser().parse_args(argv)
     if args.dry_run and not args.monitor:
         print("Configuration error: --dry-run requires --monitor", file=sys.stderr)

@@ -20,6 +20,7 @@ from flyclub.models import (
 )
 from flyclub.storage.postgres import (
     PostgresRepository,
+    ProviderHealthStatus,
     RunStatus,
     StorageConfigError,
     StorageError,
@@ -306,3 +307,47 @@ def test_finish_run_rejects_unknown_run() -> None:
             empty_routes=0,
             failed_routes=1,
         )
+
+
+def test_provider_health_persists_healthy_state_without_error() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    observed_at = datetime(2027, 1, 1, tzinfo=UTC)
+
+    repository.update_provider_health(
+        provider="google_flights",
+        status=ProviderHealthStatus.HEALTHY,
+        attempted_at=observed_at,
+    )
+
+    _, params = _execution(cursor, "INSERT INTO provider_health")
+    assert params == (
+        "google_flights",
+        "HEALTHY",
+        observed_at,
+        observed_at,
+        0,
+        None,
+        None,
+        observed_at,
+    )
+
+
+def test_provider_health_persists_problem_and_error_code() -> None:
+    cursor = FakeCursor()
+    repository = _repository(cursor)
+    observed_at = datetime(2027, 1, 1, tzinfo=UTC)
+
+    repository.update_provider_health(
+        provider="google_flights",
+        status=ProviderHealthStatus.PROVIDER_CHANGED,
+        attempted_at=observed_at,
+        error_code="SEARCH_PARSE_ERROR",
+    )
+
+    _, params = _execution(cursor, "INSERT INTO provider_health")
+    assert params[1] == "PROVIDER_CHANGED"
+    assert params[3] is None
+    assert params[4] == 1
+    assert params[5] == observed_at
+    assert params[6] == "SEARCH_PARSE_ERROR"

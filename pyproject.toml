@@ -12,6 +12,7 @@ dependencies = [
     "flights @ git+https://github.com/punitarani/fli.git@121d34fea056dc513258958c4262cb5a4cc033c1",
     "psycopg[binary]>=3.2,<4",
     "pydantic>=2.10,<3",
+    "python-dotenv>=1.0,<2",
     "PyYAML>=6.0,<7",
 ]
 

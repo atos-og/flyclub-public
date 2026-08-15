@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from collections.abc import Sequence
 from dataclasses import dataclass
 from importlib.resources import files
 
 import psycopg
+from dotenv import load_dotenv
 
 from flyclub.storage.postgres import StorageError, database_url_from_env
 
@@ -87,11 +89,12 @@ def apply_migrations(database_url: str | None = None) -> int:
         raise StorageError(f"Database migration failed ({type(error).__name__})") from None
 
 
-def cli() -> int:
+def cli(argv: Sequence[str] | None = None) -> int:
+    load_dotenv(override=False)
     parser = argparse.ArgumentParser(
         prog="flyclub-db-migrate", description="Apply Fly Club PostgreSQL migrations"
     )
-    parser.parse_args()
+    parser.parse_args(argv)
     try:
         count = apply_migrations()
     except StorageError as error:

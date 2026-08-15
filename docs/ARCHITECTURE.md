@@ -42,7 +42,8 @@ database writes.
 - `flyclub.providers.google_flights`: creates round-trip `fli` filters, applies bounded retry,
   classifies errors, normalizes results, and validates deep links.
 - `flyclub.monitor`: runs provider searches sequentially, records every outcome, derives the run
-  status, and attempts to close aborted persisted runs as failures.
+  status, updates aggregate provider health, and attempts to close aborted persisted runs as
+  failures.
 - `flyclub.storage.migrations`: discovers checksum-protected SQL migrations, serializes migration
   execution with an advisory lock, and reads its connection only from `DATABASE_URL`.
 - `flyclub.storage.postgres`: persists monitor runs, comparable routes, route checks, and normalized
@@ -86,15 +87,16 @@ The initial PostgreSQL migration implements these principal entities:
 
 The repository records one best valid route price per `route_check`, not every returned itinerary,
 while retaining all normalized options in `price_snapshots`. Its history query requires the current
-check ID and excludes it from the returned baseline. No live Supabase database has been connected
-or migrated yet.
+check ID and excludes it from the returned baseline. Provider health records consecutive problem
+runs, incident start, last success, and recovery. The initial migration and repository were
+validated against a live Supabase PostgreSQL project with synthetic data removed afterward.
 
 ## External integrations
 
 - `fli`: implemented primary V1 source, pinned to the reviewed 0.10.0 Git commit because that
   release is not yet available from PyPI.
-- Supabase PostgreSQL through `psycopg`: schema, migration runner, and repository implemented;
-  external database provisioning and live validation are pending.
+- Supabase PostgreSQL through `psycopg`: provisioned, migrated, and validated with idempotent
+  migrations and complete synthetic persistence/cleanup smoke tests.
 - Telegram Bot API: accepted notification channel, not implemented yet.
 - GitHub Actions: accepted scheduler and runner, workflow not implemented yet.
 - External dead-man switch: proposed to detect missing GitHub Actions executions; not accepted as

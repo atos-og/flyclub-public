@@ -100,9 +100,20 @@ def test_cli_runs_full_monitor_in_safe_dry_run_mode(
 def test_cli_monitor_without_database_fails_safely(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    monkeypatch.setattr("flyclub.main.load_dotenv", lambda *, override: None)
     monkeypatch.delenv("DATABASE_URL", raising=False)
 
     exit_code = cli(["--config", "config/routes.example.yaml", "--monitor"])
 
     assert exit_code == 1
     assert "DATABASE_URL is not configured" in capsys.readouterr().err
+
+
+def test_cli_loads_dotenv_without_overriding_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[bool] = []
+    monkeypatch.setattr("flyclub.main.load_dotenv", lambda *, override: calls.append(override))
+
+    assert cli(["--config", "config/routes.example.yaml"]) == 0
+    assert calls == [False]

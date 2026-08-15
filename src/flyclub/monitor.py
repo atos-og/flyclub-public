@@ -10,7 +10,7 @@ from uuid import UUID, uuid4
 
 from flyclub.models import RouteDefinition, SearchOutcome, SearchStatus
 from flyclub.providers.base import FlightProvider
-from flyclub.storage.postgres import RunStatus
+from flyclub.storage.postgres import ProviderHealthStatus, RunStatus
 
 
 class MonitorRepository(Protocol):
@@ -46,6 +46,15 @@ class MonitorRepository(Protocol):
         error_message: str | None = None,
     ) -> None: ...
 
+    def update_provider_health(
+        self,
+        *,
+        provider: str,
+        status: ProviderHealthStatus,
+        attempted_at: datetime | None = None,
+        error_code: str | None = None,
+    ) -> None: ...
+
 
 @dataclass(frozen=True, slots=True)
 class MonitorSummary:
@@ -75,6 +84,29 @@ def _run_status(*, successful: int, empty: int, failed: int) -> RunStatus:
     return RunStatus.FAILURE
 
 
+def _provider_health(
+    outcomes: list[SearchOutcome],
+) -> tuple[ProviderHealthStatus, str | None]:
+    failures = [
+        outcome
+        for outcome in outcomes
+        if outcome.status not in {SearchStatus.SUCCESS, SearchStatus.EMPTY}
+    ]
+    if not failures:
+        return ProviderHealthStatus.HEALTHY, None
+    provider_change = next(
+        (outcome for outcome in failures if outcome.status is SearchStatus.PROVIDER_CHANGED),
+        None,
+    )
+    if provider_change is not None:
+        return ProviderHealthStatus.PROVIDER_CHANGED, provider_change.error_code
+    if len(failures) == len(outcomes) and all(
+        outcome.status is SearchStatus.TEMPORARY_FAILURE for outcome in failures
+    ):
+        return ProviderHealthStatus.UNAVAILABLE, failures[0].error_code
+    return ProviderHealthStatus.DEGRADED, failures[0].error_code
+
+
 def run_monitor(
     *,
     routes: tuple[RouteDefinition, ...],
@@ -98,6 +130,7 @@ def run_monitor(
     successful = 0
     empty = 0
     failed = 0
+    outcomes: list[SearchOutcome] = []
 
     try:
         for route in routes:
@@ -119,6 +152,7 @@ def run_monitor(
                 empty += 1
             else:
                 failed += 1
+            outcomes.append(outcome)
     except Exception:
         if repository is not None:
             with suppress(Exception):  # Preserve the original error if recovery also fails.
@@ -143,6 +177,12 @@ def run_monitor(
             failed_routes=failed,
             error_code="ROUTE_FAILURES" if failed else None,
             error_message="One or more route searches failed" if failed else None,
+        )
+        health_status, health_error_code = _provider_health(outcomes)
+        repository.update_provider_health(
+            provider=provider.name,
+            status=health_status,
+            error_code=health_error_code,
         )
 
     return MonitorSummary(
