@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
@@ -18,6 +18,11 @@ from psycopg.types.json import Jsonb
 from flyclub.alerts.engine import AlertDecision
 from flyclub.alerts.service import AlertDecisionRecord, AlertDeliveryStatus
 from flyclub.analysis.evaluator import ShadowScoreEvaluation
+from flyclub.daily_summary import (
+    DailyPriceSnapshot,
+    DailySummaryClaim,
+    DailySummaryDeliveryStatus,
+)
 from flyclub.health import HealthNotificationKind, ProviderHealthState, ProviderHealthStatus
 from flyclub.models import (
     FlightOption,
@@ -336,6 +341,189 @@ class PostgresRepository:
         except psycopg.Error as error:
             self._raise_sanitized(error)
         raise StorageError("Last alert price query ended unexpectedly")
+
+    def latest_daily_prices(
+        self,
+        *,
+        route_keys: tuple[str, ...],
+        observed_from: datetime,
+        observed_until: datetime,
+    ) -> tuple[DailyPriceSnapshot, ...]:
+        """Return today's latest price and the last earlier reference for each route."""
+
+        if not route_keys:
+            return ()
+        if observed_from.tzinfo is None or observed_until.tzinfo is None:
+            raise ValueError("Daily price bounds must include a timezone")
+        if observed_until < observed_from:
+            raise ValueError("Daily price bounds are reversed")
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    WITH requested_routes(route_key) AS (
+                        SELECT unnest(%s::text[])
+                    )
+                    SELECT requested_routes.route_key,
+                           current_price.best_price,
+                           previous_price.best_price,
+                           current_price.checked_at
+                    FROM requested_routes
+                    LEFT JOIN monitored_routes AS mr
+                      ON mr.route_key = requested_routes.route_key
+                    LEFT JOIN LATERAL (
+                        SELECT rc.best_price, rc.checked_at
+                        FROM route_checks AS rc
+                        WHERE rc.route_id = mr.id
+                          AND rc.status = 'SUCCESS'
+                          AND rc.best_price IS NOT NULL
+                          AND rc.checked_at >= %s
+                          AND rc.checked_at <= %s
+                        ORDER BY rc.checked_at DESC
+                        LIMIT 1
+                    ) AS current_price ON TRUE
+                    LEFT JOIN LATERAL (
+                        SELECT rc.best_price
+                        FROM route_checks AS rc
+                        WHERE rc.route_id = mr.id
+                          AND rc.status = 'SUCCESS'
+                          AND rc.best_price IS NOT NULL
+                          AND rc.checked_at < %s
+                        ORDER BY rc.checked_at DESC
+                        LIMIT 1
+                    ) AS previous_price ON TRUE
+                    ORDER BY array_position(%s::text[], requested_routes.route_key)
+                    """,
+                    (
+                        list(route_keys),
+                        observed_from,
+                        observed_until,
+                        observed_from,
+                        list(route_keys),
+                    ),
+                )
+                return tuple(
+                    DailyPriceSnapshot(
+                        route_key=row[0],
+                        current_price=row[1],
+                        previous_price=row[2],
+                        observed_at=row[3],
+                    )
+                    for row in cursor.fetchall()
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Daily price query ended unexpectedly")
+
+    def claim_daily_summary(
+        self,
+        *,
+        summary_date: date,
+        claimed_at: datetime,
+    ) -> DailySummaryClaim:
+        """Claim one date for delivery, allowing an explicit retry only after failure."""
+
+        summary_id = uuid4()
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO daily_summary_history (
+                        id, summary_date, created_at, updated_at, delivery_status
+                    ) VALUES (%s, %s, %s, %s, 'PENDING')
+                    ON CONFLICT (summary_date) DO UPDATE SET
+                        updated_at = EXCLUDED.updated_at,
+                        delivery_status = 'PENDING',
+                        telegram_message_id = NULL,
+                        sent_at = NULL,
+                        error_code = NULL
+                    WHERE daily_summary_history.delivery_status = 'FAILED'
+                    RETURNING id, delivery_status
+                    """,
+                    (summary_id, summary_date, claimed_at, claimed_at),
+                )
+                claimed = cursor.fetchone()
+                if claimed is not None:
+                    return DailySummaryClaim(
+                        summary_id=claimed[0],
+                        claimed=True,
+                        delivery_status=DailySummaryDeliveryStatus(claimed[1]),
+                    )
+                cursor.execute(
+                    """
+                    SELECT id, delivery_status
+                    FROM daily_summary_history
+                    WHERE summary_date = %s
+                    """,
+                    (summary_date,),
+                )
+                existing = cursor.fetchone()
+                if existing is None:
+                    raise StorageError("Daily summary claim could not be persisted")
+                return DailySummaryClaim(
+                    summary_id=existing[0],
+                    claimed=False,
+                    delivery_status=DailySummaryDeliveryStatus(existing[1]),
+                )
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
+        raise StorageError("Daily summary claim ended unexpectedly")
+
+    def mark_daily_summary_sent(
+        self,
+        *,
+        summary_id: UUID,
+        telegram_message_id: str,
+        sent_at: datetime,
+    ) -> None:
+        self._update_daily_summary_delivery(
+            summary_id=summary_id,
+            status=DailySummaryDeliveryStatus.SENT,
+            telegram_message_id=telegram_message_id,
+            sent_at=sent_at,
+            error_code=None,
+        )
+
+    def mark_daily_summary_failed(self, *, summary_id: UUID, error_code: str) -> None:
+        self._update_daily_summary_delivery(
+            summary_id=summary_id,
+            status=DailySummaryDeliveryStatus.FAILED,
+            telegram_message_id=None,
+            sent_at=None,
+            error_code=error_code,
+        )
+
+    def _update_daily_summary_delivery(
+        self,
+        *,
+        summary_id: UUID,
+        status: DailySummaryDeliveryStatus,
+        telegram_message_id: str | None,
+        sent_at: datetime | None,
+        error_code: str | None,
+    ) -> None:
+        try:
+            with self._connect(self._database_url) as connection, connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE daily_summary_history
+                    SET updated_at = %s, delivery_status = %s, telegram_message_id = %s,
+                        sent_at = %s, error_code = %s
+                    WHERE id = %s AND delivery_status = 'PENDING'
+                    """,
+                    (
+                        sent_at or _now(),
+                        status.value,
+                        telegram_message_id,
+                        sent_at,
+                        error_code,
+                        summary_id,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    raise StorageError("Pending daily summary delivery was not found")
+        except psycopg.Error as error:
+            self._raise_sanitized(error)
 
     def record_shadow_score(
         self,

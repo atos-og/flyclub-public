@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 14 complete — passenger-scoped fare monitoring operational.
+Phase 15 complete — daily informational price summary implemented.
 
 ## Done
 
@@ -178,6 +178,14 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
   one-hour grace window, verified in the account after the workflow deployment.
 - PR #17 passed CI and was squash-merged into `main`; the remote workflow exposes both alternating
   cron entries on the default branch.
+- A separate daily summary reads the latest successful fixed-date prices already stored since
+  Brasília midnight and compares them with the last earlier observations. It does not call the
+  provider or enter the opportunity-alert pipeline.
+- Daily Telegram delivery is claimed once per Brasília calendar date in
+  `daily_summary_history`; failed delivery is retryable while pending/sent dates are not repeated.
+- The daily workflow is scheduled for 08:23 Brasília time, remains manually dispatchable, and adds
+  roughly one short Actions job per day without adding flight-provider requests or infrastructure
+  cost.
 
 ## In progress
 
@@ -195,12 +203,12 @@ Phase 14 complete — passenger-scoped fare monitoring operational.
 
 ## Last validation
 
-Date: 2026-08-15
+Date: 2026-08-17
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 177 passed, 91% total coverage, including the
-  Deal Score v2 isolation regression.
+- `pytest --cov=flyclub --cov-report=term-missing`: 188 passed, 90% total coverage, including the
+  Deal Score v2 isolation and daily-summary delivery regressions.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -272,3 +280,7 @@ Manual checks:
   and fresh-clone scan verified that `main` no longer contains them. GitHub retains the original
   closed-PR ref outside the branch owner's control, so removing that separate ref before public
   visibility requires either GitHub Support or repository recreation.
+- Live migration 004: one migration applied; its immediate rerun applied zero.
+- First live daily summary: all eight configured fixed-date routes had a price available and one
+  compact Telegram message was delivered. An immediate second execution detected the persisted
+  date claim and sent no duplicate.

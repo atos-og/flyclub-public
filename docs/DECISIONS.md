@@ -276,3 +276,23 @@ working notification policy.
 
 Trade-offs: V2 needs roughly 12 distinct days before its first provisional score and intentionally
 reacts more slowly than intraday v1.
+
+## DEC-018 — Daily informational price summary
+
+Status: Accepted
+
+Context: A deliberately quiet opportunity radar can remain silent for long periods even while it
+is operating correctly, leaving no lightweight view of the prices collected that day.
+
+Decision: Send one compact Telegram summary every day at 08:23 Brasília time using only the latest
+successful fixed-date price already persisted since local midnight. Show its change from the last
+earlier observation when available. Persist one delivery claim per local date, retry only explicit
+failed deliveries, and keep the summary outside Deal Score, alert reasons, cooldown, provider
+health, discovery, and flexible-date histories.
+
+Reason: This gives daily visibility without weakening opportunity criteria, adding provider
+requests, or introducing another interface or paid service.
+
+Trade-offs: GitHub's daily schedule is approximate, the message may show that a route had no price
+that day, and a process interrupted after Telegram accepts the message but before persistence is
+acknowledged remains pending rather than risking an automatic duplicate.

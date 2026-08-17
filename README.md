@@ -138,6 +138,13 @@ notifications stay inside the application. Configure one Simple-schedule check n
 `Fly Club Monitor`, with a 90-minute period and one-hour grace time, and use Healthchecks.io's
 native Telegram integration for external workflow alerts.
 
+The separate **Send daily price summary** workflow runs every day at 08:23 Brasília time. It reads
+the most recent successful price already persisted for each fixed-date route since local midnight,
+compares it with the last earlier observation, and sends one compact Telegram message. It performs
+no provider request, cannot create or suppress an opportunity alert, and uses a unique local date
+in PostgreSQL to prevent duplicate daily delivery. A failed Telegram delivery may be retried; an
+already pending or sent summary is not sent again.
+
 The separate CI workflow runs tests, lint, and formatting checks for pull requests and pushes to
 `main`. Reusable actions are pinned to immutable full commit SHAs.
 

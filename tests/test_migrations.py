@@ -43,7 +43,7 @@ class MigrationConnection:
 def test_initial_migration_contains_all_principal_entities() -> None:
     discovered = migrations.discover_migrations()
 
-    assert [migration.version for migration in discovered] == [1, 2, 3]
+    assert [migration.version for migration in discovered] == [1, 2, 3, 4]
     sql = discovered[0].sql
     for table in (
         "monitored_routes",
@@ -60,6 +60,8 @@ def test_initial_migration_contains_all_principal_entities() -> None:
     assert "recovery_alert_sent_at" in discovered[1].sql
     assert "CREATE TABLE deal_score_shadow" in discovered[2].sql
     assert "PRIMARY KEY (route_check_id, version)" in discovered[2].sql
+    assert "CREATE TABLE daily_summary_history" in discovered[3].sql
+    assert "summary_date DATE NOT NULL UNIQUE" in discovered[3].sql
 
 
 def test_apply_migrations_executes_pending_sql(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -70,12 +72,13 @@ def test_apply_migrations_executes_pending_sql(monkeypatch: pytest.MonkeyPatch) 
         lambda _database_url: MigrationConnection(cursor),
     )
 
-    assert migrations.apply_migrations("postgresql://test.invalid/flyclub") == 3
+    assert migrations.apply_migrations("postgresql://test.invalid/flyclub") == 4
 
     statements = [query for query, _ in cursor.executions]
     assert any("CREATE TABLE monitored_routes" in query for query in statements)
     assert any("ALTER TABLE provider_health" in query for query in statements)
     assert any("CREATE TABLE deal_score_shadow" in query for query in statements)
+    assert any("CREATE TABLE daily_summary_history" in query for query in statements)
     assert any("INSERT INTO flyclub_schema_migrations" in query for query in statements)
 
 

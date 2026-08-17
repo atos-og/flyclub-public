@@ -1,0 +1,65 @@
+name: Send daily price summary
+
+on:
+  schedule:
+    # Every day at 08:23 America/Sao_Paulo (11:23 UTC).
+    - cron: "23 11 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flyclub-daily-summary
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Fly Club
+        run: python -m pip install .
+
+      - name: Validate required secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for name in DATABASE_URL FLYCLUB_ROUTES_YAML TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Secret ${name} is not configured"
+              missing=1
+            fi
+          done
+          exit "${missing}"
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: flyclub-db-migrate
+
+      - name: Send informational daily summary
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: flyclub-daily-summary

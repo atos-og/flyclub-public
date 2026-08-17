@@ -32,6 +32,8 @@ routes YAML or FLYCLUB_ROUTES_YAML
        Alert Engine → alert_history
                   ↓
        Alert Coordinator → Telegram
+
+ persisted fixed-date prices → Daily Summary → daily_summary_history → Telegram
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
@@ -91,6 +93,9 @@ database writes.
   fixed-duration routes without changing core provider-health notification state.
 - `flyclub.discovery`: runs an optional manual-only market scan with isolated `DISCOVERY` keys and
   per-destination score thresholds, reusing persistence and alerts without provider-health updates.
+- `flyclub.daily_summary`: reads only already-persisted fixed-date prices, formats one compact local
+  day summary, claims an idempotent delivery date, and sends it through Telegram without entering
+  the alert engine or calling a flight provider.
 
 ## Component boundaries
 
@@ -148,6 +153,7 @@ The initial PostgreSQL migration implements these principal entities:
 - `alert_history`: consolidated alert decisions and Telegram delivery state.
 - `deal_score_shadow`: versioned, idempotent v2 evaluations kept separate from alert decisions.
 - `provider_health`: last success, consecutive problem runs, current incident, and recovery state.
+- `daily_summary_history`: one idempotent Telegram delivery state per Brasília calendar date.
 
 The repository records one best valid route price per `route_check`, not every returned itinerary,
 while retaining all normalized options in `price_snapshots`. Its history query requires the current
@@ -167,7 +173,8 @@ data removed afterward.
 - Telegram Bot API: configured, live-tested, and connected to idempotent monitor delivery.
 - GitHub Actions: the least-privilege, non-overlapping monitor accepts manual/external dispatches
   and retains duplicate-safe native fallback schedules 30 minutes later. CI separately validates
-  pushes and pull requests.
+  pushes and pull requests. A separate daily workflow reads persisted prices and sends the
+  informational summary without provider calls or alert-policy access.
 - Healthchecks.io: one external dead-man check wraps the main monitor workflow with start,
   success, and failure signals. Its private base Ping URL is read only from the
   `HEALTHCHECKS_PING_URL` Repository Secret; native Healthchecks.io Telegram delivery reports
