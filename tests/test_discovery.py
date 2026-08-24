@@ -16,6 +16,7 @@ def test_discovery_workflow_runs_three_times_per_week_after_cost_approval() -> N
     assert 'cron: "23 9 * * 1,3,6"' in text
     assert "flyclub-discovery" in text
     assert "HEALTHCHECKS_PING_URL" not in text
+    assert "FLYCLUB_CONFIRMATION_WORKFLOW_URL: ${{ github.server_url }}/" in text
 
 
 def test_discovery_cli_uses_independent_routes_without_provider_health(

@@ -71,6 +71,7 @@ class AlertCoordinator:
         policy: AlertPolicy,
         *,
         positioning_context_min_savings: Decimal = Decimal("100"),
+        confirmation_workflow_url: str | None = None,
         formatter: Callable[..., str] = format_alert_message,
     ) -> None:
         if positioning_context_min_savings < 0:
@@ -79,6 +80,7 @@ class AlertCoordinator:
         self._telegram = telegram
         self._policy = policy
         self._positioning_context_min_savings = positioning_context_min_savings
+        self._confirmation_workflow_url = confirmation_workflow_url
         self._formatter = formatter
 
     def handle(
@@ -144,6 +146,7 @@ class AlertCoordinator:
             evaluation=evaluation,
             alert=alert,
             origin_comparison=actionable_comparison,
+            confirmation_workflow_url=self._confirmation_workflow_url,
         )
         try:
             delivery = self._telegram.send_message(message, parse_mode="HTML")

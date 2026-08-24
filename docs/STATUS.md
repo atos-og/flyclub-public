@@ -222,7 +222,7 @@ Date: 2026-08-24
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 211 passed, 90% total coverage, including the
+- `pytest --cov=flyclub --cov-report=term-missing`: 214 passed, 90% total coverage, including the
   date-matrix, fare-risk, compact-link, production-shaped Deal Score, v2 isolation, and daily
   summary delivery regressions.
 - `ruff check .`: passed.
@@ -326,3 +326,6 @@ Manual checks:
   LGPL-3.0 license and the pinned `fli` MIT license.
 - The licensed package built successfully as a wheel; its metadata identifies MIT, includes the
   license file, and contains application modules and migrations without local configuration.
+- The two-passenger confirmation workflow URL is no longer hardcoded to the owner's repository.
+  Private deployment workflows derive it from their own GitHub context at runtime; public or local
+  installations omit the reminder unless an explicit URL is supplied.

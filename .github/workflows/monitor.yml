@@ -125,6 +125,7 @@ jobs:
           FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FLYCLUB_CONFIRMATION_WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/workflows/confirm-two-passengers.yml
         run: flyclub --monitor
 
       - name: Notify Healthchecks completion

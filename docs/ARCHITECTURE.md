@@ -79,7 +79,8 @@ database writes.
 - `flyclub.alerts.formatter`: builds a short HTML-safe message from normalized route, itinerary,
   passenger-scoped total price, statistics, score, and alert reasons; validated offer URLs are
   hidden behind one compact clickable label, and missing URLs are never invented. It separately
-  formats non-persistent two-passenger confirmations.
+  formats non-persistent two-passenger confirmations. The optional private confirmation-workflow
+  URL enters at runtime and is never hardcoded into the package.
 - `flyclub.alerts.telegram`: implements a sanitized standard-library client for the Telegram Bot
   API.
 - `flyclub.alerts.service`: persists each consolidated decision, sends only a newly created `SEND`,
