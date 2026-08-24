@@ -4,6 +4,9 @@ Fly Club is a personal radar for exceptional flight opportunities. It is designe
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
 
+The source is being prepared for an MIT-licensed public release. Personal production operation
+remains private; see [the publication and deployment model](docs/PUBLICATION.md).
+
 The project currently validates route configuration, searches Google Flights, persists every
 result in PostgreSQL, evaluates successful prices against prior-only history with deterministic
 statistics, trend, confidence, and Deal Score, and sends consolidated low-noise Telegram alerts.
@@ -229,8 +232,32 @@ when needed for secure setup and in the GitHub Repository Secret of the same nam
 contains variable names only. Validation errors are formatted without echoing configuration
 values.
 
-The repository will receive a dedicated security and documentation review before it is made
-public.
+Do not place private itinerary data in GitHub Actions inputs on a public repository because run
+metadata and logs may be public. The owner's scheduled and manual production workflows run from a
+separate private deployment repository after the public split.
+
+Report vulnerabilities privately according to [SECURITY.md](SECURITY.md). Public-release gates,
+credential rotation, history scanning, and the private deployment boundary are documented in
+[docs/PUBLICATION.md](docs/PUBLICATION.md).
+
+## Disclaimer
+
+Fly Club uses an unofficial provider integration and may stop working when upstream behavior
+changes. Prices, availability, baggage, fare rules, passenger inventory, and booking conditions
+must be confirmed directly with the seller before purchase. Fly Club does not buy tickets, provide
+financial or travel advice, or guarantee that an observed fare remains available.
+
+The project is not affiliated with or endorsed by Google, Google Flights, Telegram, Supabase,
+Healthchecks.io, or GitHub.
+
+## Contributing and acknowledgements
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a change and
+[ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for the open-source components used by Fly Club.
+
+## License
+
+Fly Club is available under the [MIT License](LICENSE).
 
 ## V1 scope
 

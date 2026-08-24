@@ -321,3 +321,24 @@ the low-noise radar.
 Trade-offs: The matrix is intentionally capped and can consume up to 49 unofficial-provider calls
 when manually dispatched. Fare rules must be verified and entered by the user because the provider
 does not supply them; variable future fare differences cannot be calculated in advance.
+
+## DEC-020 — Public source and private personal deployment are separate
+
+Status: Accepted for the initial public release
+
+Context: A public portfolio repository benefits from transparent development, but public Actions
+runs, manual workflow inputs, retained pull-request refs, and operational metadata can expose
+personal travel details even when credentials remain in GitHub Secrets.
+
+Decision: Make `flyclub` the canonical MIT-licensed public source repository and operate the
+owner's real monitor from a separate private deployment repository pinned to a reviewed public
+revision. Create the public repository from clean `main` history only; never mirror historical
+pull-request refs. Keep scheduled workflows, personal manual runs, Repository Secrets, and their
+logs private. Publish synthetic configuration and public CI only.
+
+Reason: This permits normal public commits and pull requests without placing personal operation in
+the same visibility boundary as the portfolio source.
+
+Trade-offs: Two repositories require a controlled release/sync step, duplicated deployment
+configuration, credential rotation during migration, and an explicit production validation for
+each promoted public revision.

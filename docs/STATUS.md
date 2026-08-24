@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 17 complete — compact offer links and production Deal Score audit implemented.
+Phase 18 in progress — public-source hardening and private-deployment separation.
 
 ## Done
 
@@ -201,12 +201,15 @@ Phase 17 complete — compact offer links and production Deal Score audit implem
 
 ## In progress
 
-- None.
+- Prepare a clean public-release candidate from `main` without retained pull-request refs.
+- Separate enabled personal workflows and Actions logs into a private deployment repository before
+  public visibility.
 
 ## Next
 
-- Perform the dedicated V1 security, documentation, license, and acknowledgements review before
-  considering public visibility.
+- Complete the `daily-median-v2` 30-day review no earlier than 2026-09-14.
+- Rotate all production credentials after the repository split, validate the private deployment
+  against the exact public candidate, and run the final go/no-go audit.
 
 ## Known issues
 
@@ -311,3 +314,15 @@ Manual checks:
 - Deal Score v2 shadow had accumulated 1,601 isolated evaluations across 81 series and ten
   Brasília calendar days. It correctly produced no score yet because it requires 12 distinct
   daily medians, not correlated intraday samples.
+- Public-readiness audit confirmed that the clean `main` history contains no known real credential
+  patterns, `.env` and real route files are ignored, and only `main` remains as a remote branch.
+  GitHub still retains 35 pull-request refs; refs 24 through 28 contain personal travel dates and
+  therefore permanently block publishing the existing repository in place.
+- The public/private repository boundary is documented: public source and CI remain transparent,
+  while enabled schedules, personal workflow inputs, secrets, and production logs stay private.
+- An MIT license, security policy, contribution guide, dependency acknowledgements, publication
+  checklist, package license metadata, and weekly Dependabot configuration were added on the
+  public-readiness branch. Official dependency metadata was reviewed, including Psycopg's
+  LGPL-3.0 license and the pinned `fli` MIT license.
+- The licensed package built successfully as a wheel; its metadata identifies MIT, includes the
+  license file, and contains application modules and migrations without local configuration.

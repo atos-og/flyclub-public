@@ -1,0 +1,60 @@
+# Public release and private operation
+
+Fly Club separates portfolio source code from the owner's personal deployment. Public visibility
+must never make private routes, workflow inputs, logs, credentials, or retained Git references
+public.
+
+## Repository model
+
+- The public `flyclub` repository is the canonical source for application code, tests, synthetic
+  examples, architecture, releases, and public CI.
+- A separate private deployment repository owns enabled schedules, personal manual runs, private
+  Actions logs, and Repository Secrets. It consumes a reviewed public Fly Club release or commit.
+- Neither repository versions credentials or real route configuration.
+
+This boundary keeps normal open-source development public while preserving the confidentiality of
+the owner's operational data.
+
+## Release timing
+
+The initial public release is gated on the 30-day `daily-median-v2` shadow review, whose earliest
+valid review date is 2026-09-14. If that review causes a scoring or alert-policy change, the new
+behavior must pass CI and run stably in the private deployment before publication. The preferred
+release window is 2026-09-21 through 2026-09-30; reaching a calendar date never overrides a failed
+security or reliability gate.
+
+## One-time migration
+
+1. Build a new private public-release candidate from the clean `main` branch only. Never mirror
+   pull-request refs, remote branches, Actions artifacts, or old repository metadata.
+2. Remove enabled production schedules and workflows that accept personal inputs. Keep public CI
+   and sanitized deployment examples only.
+3. Scan every reachable candidate commit and file for credentials and personal configuration.
+4. Create the private deployment repository and validate it against an immutable candidate commit.
+5. Rotate the database credential, Telegram bot token, healthcheck URL, and external scheduler
+   token; configure only the private deployment repository with their replacements.
+6. Confirm one complete monitor cycle, one health heartbeat, and safe aggregate-only logs.
+7. Enable branch protection, required CI, Dependabot, secret scanning, push protection, code
+   scanning, and private vulnerability reporting on the public candidate.
+8. Review README, license, acknowledgements, screenshots, issues, releases, Actions artifacts, and
+   repository metadata manually.
+9. Rename repositories only after both sides pass the go/no-go checklist. Keep the historical
+   repository private because retained pull-request refs contain personal data.
+
+## Go/no-go checklist
+
+Publication is allowed only when all answers are yes:
+
+- Is the 30-day Deal Score v2 review complete and documented?
+- Is the candidate built without historical PR refs or non-main branches?
+- Do automated and manual scans find no real secrets or personal itinerary data?
+- Are every production credential and private endpoint rotated after the split?
+- Are production workflows and logs private while public workflows use only synthetic data?
+- Do tests, lint, formatting, dependency checks, and code scanning pass?
+- Are the MIT license, security policy, contribution guide, acknowledgements, and README current?
+- Has a clean-room installation succeeded using only public documentation?
+- Has the private deployment completed a real cycle from the exact public candidate revision?
+
+After publication, normal development continues through public branches and pull requests. A
+secret accidentally committed to a public branch is considered compromised and must be rotated;
+deleting it in a later commit is not remediation.

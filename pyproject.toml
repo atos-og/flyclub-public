@@ -7,6 +7,9 @@ name = "flyclub"
 version = "0.1.0"
 description = "A personal radar for exceptional flight opportunities."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Atos Barros"}]
 requires-python = ">=3.12"
 dependencies = [
     "flights @ git+https://github.com/punitarani/fli.git@121d34fea056dc513258958c4262cb5a4cc033c1",
@@ -15,6 +18,11 @@ dependencies = [
     "python-dotenv>=1.0,<2",
     "PyYAML>=6.0,<7",
 ]
+
+[project.urls]
+Repository = "https://github.com/atos-og/flyclub"
+Issues = "https://github.com/atos-og/flyclub/issues"
+Security = "https://github.com/atos-og/flyclub/security/policy"
 
 [project.optional-dependencies]
 dev = [
