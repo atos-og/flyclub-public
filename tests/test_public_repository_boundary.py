@@ -10,8 +10,20 @@ DEPLOYMENT_TEMPLATES = PROJECT_ROOT / "examples" / "github-actions"
 def test_public_repository_activates_only_ci() -> None:
     active = {path.name for path in ACTIVE_WORKFLOWS.glob("*.yml")}
 
-    assert active == {"ci.yml"}
-    assert "schedule:" not in (ACTIVE_WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+    assert active == {"ci.yml", "secret-scan.yml"}
+    assert all(
+        "schedule:" not in path.read_text(encoding="utf-8")
+        for path in ACTIVE_WORKFLOWS.glob("*.yml")
+    )
+
+
+def test_secret_scan_download_is_versioned_checksummed_and_history_complete() -> None:
+    workflow = (ACTIVE_WORKFLOWS / "secret-scan.yml").read_text(encoding="utf-8")
+
+    assert "GITLEAKS_VERSION: 8.30.1" in workflow
+    assert "sha256sum --check --strict" in workflow
+    assert "fetch-depth: 0" in workflow
+    assert "--redact --config .gitleaks.toml" in workflow
 
 
 def test_private_deployment_workflows_are_inert_pinned_source_templates() -> None:

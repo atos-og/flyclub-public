@@ -37,7 +37,7 @@ V1 feature-complete; public-release candidate under security and clean-room vali
 
 Date: 2026-08-24
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 218 passed with at least 90% coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 219 passed with at least 90% coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `python -m pip check`: passed.

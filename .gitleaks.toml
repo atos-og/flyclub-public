@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic route-key fixture that contains no credential"
+regexTarget = "match"
+regexes = ['''key="from_bh-lis-abc123"''']

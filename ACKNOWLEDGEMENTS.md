@@ -19,6 +19,8 @@ Fly Club is built with open-source software. Each dependency remains governed by
   [Ruff](https://github.com/astral-sh/ruff) support testing, coverage, linting, and formatting.
 - [actions/checkout](https://github.com/actions/checkout) and
   [actions/setup-python](https://github.com/actions/setup-python) support CI and deployment.
+- [Gitleaks](https://github.com/gitleaks/gitleaks) — MIT; scans reachable public history for
+  accidental credentials after its release checksum is verified.
 
 Fly Club is not affiliated with or endorsed by Google, Google Flights, Telegram, Supabase,
 Healthchecks.io, GitHub, or the maintainers of the projects listed above.
