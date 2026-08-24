@@ -1,27 +1,29 @@
-name: Scan discovery markets
+name: Send daily price summary
 
 on:
   schedule:
-    # Monday, Wednesday, and Saturday at 06:23 America/Sao_Paulo (09:23 UTC).
-    - cron: "23 9 * * 1,3,6"
+    # Every day at 08:23 America/Sao_Paulo (11:23 UTC).
+    - cron: "23 11 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: flyclub-discovery
+  group: flyclub-daily-summary
   cancel-in-progress: false
 
 jobs:
-  scan:
+  send:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          repository: ${{ vars.FLYCLUB_SOURCE_REPOSITORY }}
+          ref: ${{ vars.FLYCLUB_SOURCE_REF }}
           persist-credentials: false
 
       - name: Set up Python
@@ -56,10 +58,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: flyclub-db-migrate
 
-      - name: Scan independent discovery routes
+      - name: Send informational daily summary
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           FLYCLUB_ROUTES_YAML: ${{ secrets.FLYCLUB_ROUTES_YAML }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: flyclub-discovery
+        run: flyclub-daily-summary

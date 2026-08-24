@@ -21,8 +21,8 @@ the credential because GitHub Secrets cannot be read outside a running workflow.
 Use these token settings:
 
 1. GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens.
-2. Resource owner: `atos-og`.
-3. Repository access: **Only select repositories** → `flyclub`.
+2. Resource owner: your GitHub account or organization.
+3. Repository access: **Only select repositories** → your private deployment repository.
 4. Repository permissions: **Actions: Read and write**; leave every other permission at its
    minimum/default value.
 5. Set a finite expiration and add a calendar reminder to rotate it.
@@ -37,7 +37,7 @@ the same 16 daily triggers as sixteen individual jobs and take less time to main
 
 Both jobs use:
 
-- URL: `https://api.github.com/repos/atos-og/flyclub/actions/workflows/monitor.yml/dispatches`
+- URL: `https://api.github.com/repos/OWNER/DEPLOYMENT_REPOSITORY/actions/workflows/monitor.yml/dispatches`
 - Method: `POST`
 - Timezone: `America/Sao_Paulo`
 - Days/months/weekdays: every value
@@ -63,11 +63,9 @@ Schedules in Brasília time:
 If the console cannot select several hours in one job, create sixteen jobs instead, one for each
 displayed time. Do not paste the token into the URL or request body.
 
-The private production deployment was activated on 2026-08-15 with both grouped jobs enabled,
-response-body storage disabled, and failure/recovery notifications enabled. Its initial test
-returned GitHub's expected `204 No Content`; the dispatched monitor then completed successfully,
-including the Healthchecks start and completion steps. The credential was created with a finite
-90-day expiration and must be rotated before it expires.
+Keep response-body storage disabled, enable failure/recovery notifications, use a finite token
+expiration, and record its rotation date outside Git. A successful test returns GitHub's expected
+`204 No Content`; confirm that the dispatched private workflow and both Healthchecks steps finish.
 
 ## Validation and fallback
 

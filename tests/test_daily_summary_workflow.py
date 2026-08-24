@@ -1,7 +1,7 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "daily-summary.yml"
+WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "daily-summary.example.yml"
 
 
 def test_daily_summary_runs_once_each_brasilia_morning_and_manually() -> None:

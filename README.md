@@ -4,8 +4,10 @@ Fly Club is a personal radar for exceptional flight opportunities. It is designe
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
 
-The source is being prepared for an MIT-licensed public release. Personal production operation
-remains private; see [the publication and deployment model](docs/PUBLICATION.md).
+Fly Club is MIT-licensed open-source software. This repository contains only source code,
+synthetic examples, public CI, and inert deployment templates. Personal production operation
+belongs in a separate private repository; see
+[the publication and deployment model](docs/PUBLICATION.md).
 
 The project currently validates route configuration, searches Google Flights, persists every
 result in PostgreSQL, evaluates successful prices against prior-only history with deterministic
@@ -103,7 +105,12 @@ does not clear that net threshold is persisted as suppressed instead of being se
 
 ## GitHub Actions
 
-The private monitor workflow supports manual dispatch and an external primary trigger every 90
+Only CI and dependency maintenance are active in this source repository. Deployment templates live
+under [`examples/github-actions`](examples/github-actions) with the `.example.yml` suffix, so
+GitHub cannot execute them here. Copy only the workflows you need into a separate private
+deployment repository and review their permissions before enabling them.
+
+The reference monitor workflow supports manual dispatch and an external primary trigger every 90
 minutes. Native GitHub schedules remain as duplicate-safe fallbacks 30 minutes later because
 scheduled events are approximate and can be delayed. The workflow allows read access only to
 repository contents and Actions run metadata, prevents overlapping monitor runs, applies pending
@@ -141,7 +148,7 @@ notifications stay inside the application. Configure one Simple-schedule check n
 `Fly Club Monitor`, with a 90-minute period and one-hour grace time, and use Healthchecks.io's
 native Telegram integration for external workflow alerts.
 
-The separate **Send daily price summary** workflow runs every day at 08:23 Brasília time. It reads
+The reference **Send daily price summary** workflow runs every day at 08:23 Brasília time. It reads
 the most recent successful price already persisted for each fixed-date route since local midnight,
 compares it with the last earlier observation, and sends one compact Telegram message. It performs
 no provider request, cannot create or suppress an opportunity alert, and uses a unique local date
@@ -152,12 +159,13 @@ The separate CI workflow runs tests, lint, and formatting checks for pull reques
 `main`. Reusable actions are pinned to immutable full commit SHAs.
 
 When an automatic alert scores at least 80 with moderate or high confidence, it links to the
-separate **Confirm fare for 2 passengers** workflow. Use Actions → that workflow → Run workflow,
+reference **Confirm fare for 2 passengers** workflow. In a private deployment, use Actions → that
+workflow → Run workflow,
 enter one origin IATA code, destination, departure date, and return date. The spot check always
 uses two Economy passengers in BRL, sends a clearly tagged Telegram message, and never reads or
 writes the statistical database.
 
-The manual **Compare nearby travel dates** workflow varies departure and return independently
+The reference **Compare nearby travel dates** workflow varies departure and return independently
 inside a selected ±1, ±2, or ±3-day window. A ±3-day comparison can perform up to 49 sequential
 provider searches for one explicit origin/destination pair. It ranks the three cheapest successful
 combinations, breaking equal-price ties by fewer stops, shorter duration, and smaller date change.
@@ -165,7 +173,7 @@ The Telegram result states the exact savings or extra cost versus the requested 
 each date shift. It is a point-in-time comparison: it does not persist results, calculate Deal
 Score, or change automatic alerts.
 
-The manual **Compare fare flexibility** workflow compares two quoted fares after their exact rules
+The reference **Compare fare flexibility** workflow compares two quoted fares after their exact rules
 have been checked. For each fare, enter its total price, cancellation rule and fixed penalty,
 change rule and fixed penalty, whether a future fare difference applies, the exact HTTP(S) source,
 and the verification date. The deterministic ranking uses the greatest fixed financial exposure
@@ -174,14 +182,14 @@ block an automatic recommendation. Because `fli` does not expose fare rules, thi
 invents or scrapes them: the entered source and conditions remain authoritative and must still be
 confirmed at checkout. It does not change the quoted price, history, Deal Score, or alerts.
 
-The independent **Scan flexible dates** workflow uses two daily shards at 04:33 and 16:33 Brasília
+The reference **Scan flexible dates** workflow uses two daily shards at 04:33 and 16:33 Brasília
 time. The first scans −3, −2, and −1 days; the second scans +1, +2, and +3 days. This preserves
 trip duration, keeps provider calls sequential, and gives every offset one observation per day
 without placing all 48 private searches in one job. Each date pair is an isolated statistical
 series, and any Telegram opportunity starts with `🗓️ DATA FLEXÍVEL`. The fixed-date 90-minute
 monitor remains unchanged.
 
-The **Scan discovery markets** workflow runs every Monday, Wednesday, and Saturday at 06:23
+The reference **Scan discovery markets** workflow runs every Monday, Wednesday, and Saturday at 06:23
 Brasília time and also supports manual dispatch. It plans 30 independent routes across the
 configured BH and São Paulo markets, uses a score threshold of 60 for selected Americas/Brazil
 destinations and 90 for Europe, and prefixes Telegram messages with `🔎 DESCOBERTA`. Discovery

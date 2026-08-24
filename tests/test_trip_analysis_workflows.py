@@ -1,8 +1,8 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATE_WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "compare-dates.yml"
-RISK_WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "compare-fare-risk.yml"
+DATE_WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "compare-dates.example.yml"
+RISK_WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "compare-fare-risk.example.yml"
 
 
 def test_date_workflow_is_manual_bounded_and_non_persistent() -> None:

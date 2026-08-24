@@ -5,7 +5,7 @@ import pytest
 from flyclub.discovery import cli
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "discovery.yml"
+WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "discovery.example.yml"
 
 
 def test_discovery_workflow_runs_three_times_per_week_after_cost_approval() -> None:

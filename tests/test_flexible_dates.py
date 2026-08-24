@@ -5,7 +5,7 @@ import pytest
 from flyclub.flexible_dates import cli
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "flexible-dates.yml"
+WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "flexible-dates.example.yml"
 
 
 def test_flexible_workflow_uses_two_daily_sequential_shards() -> None:

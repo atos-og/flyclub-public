@@ -38,8 +38,8 @@ security or reliability gate.
    scanning, and private vulnerability reporting on the public candidate.
 8. Review README, license, acknowledgements, screenshots, issues, releases, Actions artifacts, and
    repository metadata manually.
-9. Rename repositories only after both sides pass the go/no-go checklist. Keep the historical
-   repository private because retained pull-request refs contain personal data.
+9. Rename repositories only after both sides pass the go/no-go checklist. Keep any historical
+   repository with private operational refs permanently private.
 
 ## Go/no-go checklist
 

@@ -23,8 +23,8 @@ It is not a generic travel search engine, agency, dashboard, or purchase recomme
 - Distinguish successful, empty, temporary-failure, provider-change, and invalid-request results.
 - Important failures must not happen silently; maintain provider health and run health.
 - Never commit secrets, personal routes, real dates, destinations, or private healthcheck URLs.
-- Keep the repository private during development but safe to publish without rewriting history.
-- Keep the future public source repository separate from the owner's private deployment; public
+- Keep the public source repository safe to clone and inspect at any reachable revision.
+- Keep public source separate from the owner's private deployment; public
   Actions must never receive personal routes, dates, fare rules, or production credentials.
 - Test critical rules, especially statistics, score, deduplication, money, URLs, and health.
 - Prefer small, readable components and pure functions over speculative abstractions.
