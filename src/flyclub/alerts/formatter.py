@@ -10,10 +10,6 @@ from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel
 from flyclub.models import FlightOption, OriginPriceComparison, RouteDefinition, RouteKind
 
-MANUAL_CONFIRMATION_WORKFLOW_URL = (
-    "https://github.com/atos-og/flyclub/actions/workflows/confirm-two-passengers.yml"
-)
-
 
 def _money(value: Decimal, currency: str) -> str:
     if currency == "BRL":
@@ -80,6 +76,7 @@ def format_alert_message(
     evaluation: RoutePriceEvaluation,
     alert: AlertResult,
     origin_comparison: OriginPriceComparison | None = None,
+    confirmation_workflow_url: str | None = None,
 ) -> str:
     """Format one consolidated alert without inventing itinerary or URL data."""
 
@@ -155,12 +152,13 @@ def format_alert_message(
         evaluation.deal_score.score is not None
         and evaluation.deal_score.score >= 80
         and (statistics.confidence in {ConfidenceLevel.MODERATE, ConfidenceLevel.HIGH})
+        and confirmation_workflow_url is not None
     ):
         lines.extend(
             [
                 "",
                 "👥 Antes de comprar, confirme o preço para 2 passageiros:",
-                MANUAL_CONFIRMATION_WORKFLOW_URL,
+                confirmation_workflow_url,
             ]
         )
 

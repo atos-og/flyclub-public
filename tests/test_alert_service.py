@@ -216,6 +216,29 @@ def test_positioning_context_is_forwarded_only_for_material_savings() -> None:
     assert captured[0]["origin_comparison"] == OriginPriceComparison("CNF", Decimal("200"))
 
 
+def test_private_confirmation_url_is_forwarded_without_being_hardcoded() -> None:
+    captured: list[dict[str, object]] = []
+    repository = FakeRepository()
+    telegram = FakeTelegram()
+    coordinator = AlertCoordinator(
+        repository,  # type: ignore[arg-type]
+        telegram,  # type: ignore[arg-type]
+        AlertPolicy(),
+        confirmation_workflow_url="https://example.com/private-confirmation",
+        formatter=lambda **kwargs: captured.append(kwargs) or "formatted alert",
+    )
+
+    coordinator.handle(
+        route=_route(target="100"),
+        current_check_id=uuid4(),
+        current_option=FlightOption(Decimal("80"), "BRL", ()),
+        current_at=NOW,
+        evaluation=_evaluation(),
+    )
+
+    assert captured[0]["confirmation_workflow_url"] == ("https://example.com/private-confirmation")
+
+
 def test_positioning_alert_is_suppressed_when_estimated_net_savings_is_too_low() -> None:
     repository = FakeRepository()
     telegram = FakeTelegram()

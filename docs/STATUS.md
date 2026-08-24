@@ -22,6 +22,8 @@ V1 feature-complete; public-release candidate under security and clean-room vali
 - Provider/run health, idempotent delivery, bounded retry, and an external heartbeat design.
 - MIT license, security policy, contribution guide, acknowledgements, Dependabot configuration,
   and public/private deployment guidance.
+- Optional private-workflow links supplied only at runtime, with no owner's operational URL
+  hardcoded into the package.
 
 ## Public repository boundary
 
@@ -35,12 +37,12 @@ V1 feature-complete; public-release candidate under security and clean-room vali
 
 Date: 2026-08-24
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 211 passed with 90% coverage.
+- `pytest --cov=flyclub --cov-report=term-missing`: 218 passed with at least 90% coverage.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `python -m pip check`: passed.
 - `git diff --check`: passed.
-- All workflow and deployment-template YAML parsed successfully.
+- All active workflow and inert deployment-template YAML parsed successfully.
 - The package built successfully as a wheel with MIT metadata and its license file included.
 - Tracked-file and reachable-history scans found no real credential patterns in the candidate
   source lineage.

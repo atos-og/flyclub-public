@@ -94,7 +94,8 @@ flyclub --monitor
 A persisted cycle also records one idempotent alert decision per successful route check. A new
 `SEND` decision is delivered through Telegram and marked `SENT` or `FAILED`; an existing decision
 is never sent again. Telegram credentials are read only from `TELEGRAM_BOT_TOKEN` and
-`TELEGRAM_CHAT_ID`.
+`TELEGRAM_CHAT_ID`. The optional `FLYCLUB_CONFIRMATION_WORKFLOW_URL` enables the two-passenger
+confirmation reminder without hardcoding an owner's repository into the package.
 
 For positioning origins such as São Paulo, the monitor compares the fare with the best compatible
 HOME-origin option found in the same run. When the savings meet

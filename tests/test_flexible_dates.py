@@ -20,6 +20,7 @@ def test_flexible_workflow_uses_two_daily_sequential_shards() -> None:
     assert "timeout-minutes: 25" in text
     assert "flyclub-monitor" not in text
     assert "HEALTHCHECKS_PING_URL" not in text
+    assert "FLYCLUB_CONFIRMATION_WORKFLOW_URL: ${{ github.server_url }}/" in text
 
 
 def test_flexible_cli_uses_dedicated_routes_without_provider_health(

@@ -5,11 +5,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from flyclub.alerts.engine import AlertDecision, AlertReason, AlertResult
-from flyclub.alerts.formatter import (
-    MANUAL_CONFIRMATION_WORKFLOW_URL,
-    format_alert_message,
-    format_manual_confirmation_message,
-)
+from flyclub.alerts.formatter import format_alert_message, format_manual_confirmation_message
 from flyclub.analysis.deal_score import DealClassification, DealScoreResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
 from flyclub.analysis.statistics import ConfidenceLevel, PriceStatistics
@@ -110,7 +106,13 @@ def _alert() -> AlertResult:
 
 def test_formatter_builds_short_actionable_explainable_message() -> None:
     message = format_alert_message(
-        route=_route(), option=_option(), evaluation=_evaluation(), alert=_alert()
+        route=_route(),
+        option=_option(),
+        evaluation=_evaluation(),
+        alert=_alert(),
+        confirmation_workflow_url=(
+            "https://github.com/atos-og/flyclub/actions/workflows/confirm-two-passengers.yml"
+        ),
     )
 
     assert (
@@ -213,10 +215,22 @@ def test_confirmation_reminder_requires_score_80_and_moderate_confidence() -> No
     )
 
     message = format_alert_message(
-        route=_route(), option=_option(), evaluation=low_score, alert=_alert()
+        route=_route(),
+        option=_option(),
+        evaluation=low_score,
+        alert=_alert(),
+        confirmation_workflow_url="https://example.com/private-confirmation",
     )
 
-    assert MANUAL_CONFIRMATION_WORKFLOW_URL not in message
+    assert "private-confirmation" not in message
+
+
+def test_confirmation_reminder_is_omitted_without_private_workflow_url() -> None:
+    message = format_alert_message(
+        route=_route(), option=_option(), evaluation=_evaluation(), alert=_alert()
+    )
+
+    assert "confirme o preço para 2 passageiros" not in message
 
 
 def test_manual_confirmation_is_clearly_tagged_and_scoped_to_two_passengers() -> None:

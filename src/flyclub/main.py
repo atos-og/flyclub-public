@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections.abc import Sequence
 
@@ -127,6 +128,9 @@ def _run_all_routes(
                 min_score_samples=config.analysis.min_score_samples,
             ),
             positioning_context_min_savings=config.alerts.positioning_context_min_savings,
+            confirmation_workflow_url=(
+                os.environ.get("FLYCLUB_CONFIRMATION_WORKFLOW_URL", "").strip() or None
+            ),
         )
         if include_health:
             health_handler = ProviderHealthCoordinator(

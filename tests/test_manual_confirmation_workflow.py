@@ -1,9 +1,7 @@
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = (
-    PROJECT_ROOT / "examples" / "github-actions" / "confirm-two-passengers.example.yml"
-)
+WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "confirm-two-passengers.example.yml"
 
 
 def test_manual_confirmation_workflow_has_required_inputs_and_no_persistence() -> None:

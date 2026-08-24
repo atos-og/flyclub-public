@@ -59,3 +59,13 @@ def test_healthchecks_url_is_read_only_from_a_repository_secret() -> None:
     assert "HEALTHCHECKS_PING_URL; do" in workflow
     assert "hc-ping.com" not in workflow
     assert "healthchecks.io/api" not in workflow
+
+
+def test_confirmation_workflow_url_comes_from_the_current_private_repository() -> None:
+    workflow = _workflow_text()
+
+    assert (
+        "FLYCLUB_CONFIRMATION_WORKFLOW_URL: ${{ github.server_url }}/"
+        "${{ github.repository }}/actions/workflows/confirm-two-passengers.yml"
+    ) in workflow
+    assert "secrets.FLYCLUB_CONFIRMATION_WORKFLOW_URL" not in workflow
