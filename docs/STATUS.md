@@ -46,12 +46,20 @@ Date: 2026-08-24
 - The package built successfully as a wheel with MIT metadata and its license file included.
 - Tracked-file and reachable-history scans found no real credential patterns in the candidate
   source lineage.
+- Gitleaks 8.30.1 scanned 40 reachable commits locally and again in GitHub Actions with zero
+  unresolved findings; its release checksum is verified before every CI scan.
+- A fresh authenticated clone installed every runtime/development dependency into a new virtual
+  environment, validated the synthetic configuration, and repeated all 219 tests and quality
+  checks successfully.
+- The private candidate recognizes the MIT license, permits only squash merges, deletes merged
+  branches, gives workflows read-only default permissions, blocks workflow PR approvals, restricts
+  Actions to SHA-pinned `actions/*`, and has dependency alerts and automated fixes enabled.
 
 ## Remaining release gates
 
 - Complete and document the 30-day `daily-median-v2` review no earlier than 2026-09-14.
 - Create and validate the private deployment against the exact public candidate revision.
 - Rotate every production credential and private endpoint after the repository split.
-- Run independent secret/history scanning and a clean-room install.
-- Enable public repository protection and security settings, then complete the manual go/no-go
-  checklist in `docs/PUBLICATION.md`.
+- Repeat the independent secret/history scan immediately before visibility changes.
+- Enable branch protection and private vulnerability reporting when public visibility makes those
+  features available, then complete the manual go/no-go checklist in `docs/PUBLICATION.md`.
