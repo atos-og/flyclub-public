@@ -296,3 +296,28 @@ requests, or introducing another interface or paid service.
 Trade-offs: GitHub's daily schedule is approximate, the message may show that a route had no price
 that day, and a process interrupted after Telegram accepts the message but before persistence is
 acknowledged remains pending rather than risking an automatic duplicate.
+
+## DEC-019 — Manual trip-decision comparisons stay outside the opportunity radar
+
+Status: Accepted
+
+Context: Shifting departure and return together does not reveal savings from changing trip length,
+while two similarly priced fares can have materially different cancellation and change exposure.
+A scheduled ±3-day independent matrix for all current routes would create 392 provider requests,
+and the current `fli` result does not expose authoritative fare rules.
+
+Decision: Add two manual-only Telegram workflows. The first searches an explicit route across an
+independent ±1 to ±3-day departure/return matrix, with at most 49 sequential requests, and ranks the
+three cheapest successful combinations with deterministic tie-breaks and explanations. The second
+compares two explicitly supplied fare policies using fixed cancellation/change exposure and exact
+`Decimal` money. It requires an HTTP(S) rules source and verification date, withholds an automatic
+recommendation when either source is more than seven days old, and never alters the quoted fare.
+Neither workflow persists data, runs on a schedule, calls Deal Score, or affects automatic alerts.
+
+Reason: This adds practical decision support after an opportunity appears without multiplying the
+continuous workload, inventing fare conditions, adding an LLM/browser/paid provider, or weakening
+the low-noise radar.
+
+Trade-offs: The matrix is intentionally capped and can consume up to 49 unofficial-provider calls
+when manually dispatched. Fare rules must be verified and entered by the user because the provider
+does not supply them; variable future fare differences cannot be calculated in advance.

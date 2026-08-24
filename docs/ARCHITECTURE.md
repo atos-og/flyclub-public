@@ -76,9 +76,10 @@ database writes.
 - `flyclub.health`: owns provider-health status and notification state shared across boundaries.
 - `flyclub.alerts.engine`: consolidates price target, new low, exceptional score, and significant
   drop into one confidence-aware, cooldown-protected SEND or SUPPRESS decision.
-- `flyclub.alerts.formatter`: builds a short plain-text message from normalized route, itinerary,
-  passenger-scoped total price, statistics, score, and alert reasons without inventing missing
-  URLs, and separately formats non-persistent two-passenger confirmations.
+- `flyclub.alerts.formatter`: builds a short HTML-safe message from normalized route, itinerary,
+  passenger-scoped total price, statistics, score, and alert reasons; validated offer URLs are
+  hidden behind one compact clickable label, and missing URLs are never invented. It separately
+  formats non-persistent two-passenger confirmations.
 - `flyclub.alerts.telegram`: implements a sanitized standard-library client for the Telegram Bot
   API.
 - `flyclub.alerts.service`: persists each consolidated decision, sends only a newly created `SEND`,
@@ -89,6 +90,12 @@ database writes.
   commands.
 - `flyclub.manual_confirmation`: validates four explicit workflow inputs, performs one
   two-passenger search, and sends a clearly tagged Telegram result without persistence or analysis.
+- `flyclub.date_matrix`: builds a bounded independent departure/return matrix for one explicit
+  manual route, searches at most 49 combinations sequentially, ranks the three best normalized
+  options, and explains savings and date shifts without persistence or alert-policy access.
+- `flyclub.fare_risk`: validates two manually verified fare policies and their sources, calculates
+  fixed cancellation/change exposure with `Decimal`, withholds recommendations for stale sources,
+  and sends a non-persistent Telegram comparison without changing either quoted price.
 - `flyclub.flexible_dates`: runs the normal persisted analysis/alert pipeline over isolated shifted
   fixed-duration routes without changing core provider-health notification state.
 - `flyclub.discovery`: runs an optional manual-only market scan with isolated `DISCOVERY` keys and
@@ -174,7 +181,9 @@ data removed afterward.
 - GitHub Actions: the least-privilege, non-overlapping monitor accepts manual/external dispatches
   and retains duplicate-safe native fallback schedules 30 minutes later. CI separately validates
   pushes and pull requests. A separate daily workflow reads persisted prices and sends the
-  informational summary without provider calls or alert-policy access.
+  informational summary without provider calls or alert-policy access. Two additional manual-only
+  workflows compare nearby date combinations and verified fare rules; they require only Telegram
+  secrets and do not access PostgreSQL or private route configuration.
 - Healthchecks.io: one external dead-man check wraps the main monitor workflow with start,
   success, and failure signals. Its private base Ping URL is read only from the
   `HEALTHCHECKS_PING_URL` Repository Secret; native Healthchecks.io Telegram delivery reports
@@ -183,3 +192,9 @@ data removed afterward.
 Provider health inside the application and run health in PostgreSQL remain authoritative for
 captured business/provider incidents. Healthchecks.io represents only whether the scheduled
 process continues to start and finish.
+
+The date matrix and fare-risk comparison are decision-support side flows. The first calls the
+existing provider sequentially for one explicit route and sends only a point-in-time top three.
+The second performs no provider or web request; it analyzes explicit rules and source metadata
+supplied for two quotes. Neither reads or writes PostgreSQL, provider health, Deal Score, alert
+history, cooldown state, or the automatic schedules.

@@ -131,7 +131,7 @@ def test_formatter_builds_short_actionable_explainable_message() -> None:
 👥 Antes de comprar, confirme o preço para 2 passageiros:
 https://github.com/atos-og/flyclub/actions/workflows/confirm-two-passengers.yml
 
-🔗 Ver oferta: https://www.google.com/travel/flights/example"""
+🔗 <a href="https://www.google.com/travel/flights/example">Ver oferta</a>"""
     )
     assert len(message) < 4096
 
@@ -176,6 +176,25 @@ def test_formatter_does_not_invent_missing_url() -> None:
     )
 
     assert "Ver oferta" not in message
+
+
+def test_formatter_hides_long_url_and_escapes_html() -> None:
+    route = replace(_route(), destination_name="Buenos Aires & região")
+    long_url = "https://www.google.com/travel/flights/booking?token=a&curr=BRL"
+
+    message = format_alert_message(
+        route=route,
+        option=_option(url=long_url),
+        evaluation=_evaluation(),
+        alert=_alert(),
+    )
+
+    assert "Buenos Aires &amp; região" in message
+    assert long_url not in message
+    assert (
+        '<a href="https://www.google.com/travel/flights/booking?token=a&amp;curr=BRL">'
+        "Ver oferta</a>"
+    ) in message
 
 
 def test_confirmation_reminder_requires_score_80_and_moderate_confidence() -> None:

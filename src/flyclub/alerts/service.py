@@ -146,7 +146,7 @@ class AlertCoordinator:
             origin_comparison=actionable_comparison,
         )
         try:
-            delivery = self._telegram.send_message(message)
+            delivery = self._telegram.send_message(message, parse_mode="HTML")
         except TelegramError as error:
             self._repository.mark_alert_failed(
                 alert_id=record.alert_id,

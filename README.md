@@ -154,6 +154,23 @@ enter one origin IATA code, destination, departure date, and return date. The sp
 uses two Economy passengers in BRL, sends a clearly tagged Telegram message, and never reads or
 writes the statistical database.
 
+The manual **Compare nearby travel dates** workflow varies departure and return independently
+inside a selected ±1, ±2, or ±3-day window. A ±3-day comparison can perform up to 49 sequential
+provider searches for one explicit origin/destination pair. It ranks the three cheapest successful
+combinations, breaking equal-price ties by fewer stops, shorter duration, and smaller date change.
+The Telegram result states the exact savings or extra cost versus the requested dates and explains
+each date shift. It is a point-in-time comparison: it does not persist results, calculate Deal
+Score, or change automatic alerts.
+
+The manual **Compare fare flexibility** workflow compares two quoted fares after their exact rules
+have been checked. For each fare, enter its total price, cancellation rule and fixed penalty,
+change rule and fixed penalty, whether a future fare difference applies, the exact HTTP(S) source,
+and the verification date. The deterministic ranking uses the greatest fixed financial exposure
+from cancellation or change; price only breaks an equal-risk result. Sources older than seven days
+block an automatic recommendation. Because `fli` does not expose fare rules, this workflow never
+invents or scrapes them: the entered source and conditions remain authoritative and must still be
+confirmed at checkout. It does not change the quoted price, history, Deal Score, or alerts.
+
 The independent **Scan flexible dates** workflow uses two daily shards at 04:33 and 16:33 Brasília
 time. The first scans −3, −2, and −1 days; the second scans +1, +2, and +3 days. This preserves
 trip duration, keeps provider calls sequential, and gives every offset one observation per day

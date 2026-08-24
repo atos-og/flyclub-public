@@ -26,9 +26,11 @@ dev = [
 [project.scripts]
 flyclub = "flyclub.main:cli"
 flyclub-confirm-two = "flyclub.manual_confirmation:cli"
+flyclub-date-matrix = "flyclub.date_matrix:cli"
 flyclub-db-migrate = "flyclub.storage.migrations:cli"
 flyclub-daily-summary = "flyclub.daily_summary:cli"
 flyclub-discovery = "flyclub.discovery:cli"
+flyclub-fare-risk = "flyclub.fare_risk:cli"
 flyclub-flexible-dates = "flyclub.flexible_dates:cli"
 
 [tool.hatch.build.targets.wheel]

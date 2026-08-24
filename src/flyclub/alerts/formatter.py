@@ -1,8 +1,9 @@
-"""Short plain-text Telegram messages built only from normalized Fly Club data."""
+"""Short HTML-safe Telegram messages built only from normalized Fly Club data."""
 
 from __future__ import annotations
 
 from decimal import ROUND_CEILING, Decimal
+from html import escape
 
 from flyclub.alerts.engine import AlertReason, AlertResult
 from flyclub.analysis.evaluator import RoutePriceEvaluation
@@ -192,9 +193,11 @@ def format_alert_message(
     if route.positioning_notice and not comparison_shown:
         lines.extend(["", f"⚠️ {route.positioning_notice}"])
     url = option.booking_url or option.google_flights_url
+    message = escape("\n".join(lines))
     if url:
-        lines.extend(["", f"🔗 Ver oferta: {url}"])
-    return "\n".join(lines)
+        safe_url = escape(url, quote=True)
+        message += f'\n\n🔗 <a href="{safe_url}">Ver oferta</a>'
+    return message
 
 
 def format_manual_confirmation_message(*, route: RouteDefinition, option: FlightOption) -> str:

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Phase 15 complete — daily informational price summary implemented.
+Phase 17 complete — compact offer links and production Deal Score audit implemented.
 
 ## Done
 
@@ -83,9 +83,10 @@ Phase 15 complete — daily informational price summary implemented.
 - Low-confidence exceptional scores require independent corroboration before sending.
 - Significant drops require both configured absolute and percentage thresholds.
 - Cooldown suppresses repetition unless the fare falls significantly again.
-- The compact plain-text formatter shows route, price, monetary and percentage savings, historical
-  position in plain language, recorded low, alert reasons, actionable positioning economics, and
-  only a validated provider URL when one exists.
+- The compact HTML-safe formatter shows route, price, monetary and percentage savings, historical
+  position in plain language, recorded low, alert reasons, and actionable positioning economics.
+  A validated provider URL is hidden behind the clickable `Ver oferta` label instead of occupying
+  the Telegram message, and no link is invented when the provider has none.
 - The alert price line explicitly labels the configured passenger count with correct singular or
   plural wording, preventing a one-passenger total from being mistaken for a group total.
 - A separate manually dispatched workflow confirms one explicit itinerary for exactly two Economy
@@ -186,6 +187,17 @@ Phase 15 complete — daily informational price summary implemented.
 - The daily workflow is scheduled for 08:23 Brasília time, remains manually dispatchable, and adds
   roughly one short Actions job per day without adding flight-provider requests or infrastructure
   cost.
+- A manual date-matrix workflow independently varies departure and return inside a bounded ±1 to
+  ±3-day window, searches at most 49 combinations sequentially, and sends a deterministic top-three
+  Telegram comparison without persistence or automatic-alert access.
+- Date ranking uses observed total price, then stops, duration, and smallest change from the desired
+  dates; messages quantify the difference from the original dates and explain both shifts.
+- A separate manual fare-risk workflow compares two explicitly verified policies using `Decimal`
+  fixed cancellation/change exposure. It requires exact source URLs and verification dates, blocks
+  recommendations when either source is older than seven days, and never changes the quoted price.
+- Both decision-support workflows use only existing Telegram secrets, add no dependency or
+  infrastructure, and remain outside PostgreSQL, Deal Score, cooldown, provider health, and every
+  automatic schedule.
 
 ## In progress
 
@@ -203,12 +215,13 @@ Phase 15 complete — daily informational price summary implemented.
 
 ## Last validation
 
-Date: 2026-08-17
+Date: 2026-08-24
 
 Tests:
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 188 passed, 90% total coverage, including the
-  Deal Score v2 isolation and daily-summary delivery regressions.
+- `pytest --cov=flyclub --cov-report=term-missing`: 211 passed, 90% total coverage, including the
+  date-matrix, fare-risk, compact-link, production-shaped Deal Score, v2 isolation, and daily
+  summary delivery regressions.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed after formatting.
 - `python -m pip check`: passed.
@@ -284,3 +297,17 @@ Manual checks:
 - First live daily summary: all eight configured fixed-date routes had a price available and one
   compact Telegram message was delivered. An immediate second execution detected the persisted
   date claim and sent no duplicate.
+- Both new installed CLIs expose their expected help and validation contracts.
+- Two controlled nine-combination local date matrices and one direct synthetic provider check
+  completed without failures or persistence; the provider classified every tested itinerary as
+  `EMPTY`, so no Telegram comparison was attempted and no price was invented.
+- Production persistence audit on 2026-08-24 found 204 completed monitor runs, all successful;
+  2,046 provider route checks (1,704 successful and 342 empty); and 8,520 normalized price
+  snapshots. Eleven Telegram opportunity alerts were delivered, all for `NEW_LOW`.
+- Every delivered score was independently recalculated against its chronological prior-only
+  history: all 11 matched the persisted value exactly (eight scored 56 and three scored 57). The
+  repeated values are expected because each price was a new low but only 0.40% to 1.13% below its
+  median, with stable trend; a production-shaped 56-point regression test now protects that rule.
+- Deal Score v2 shadow had accumulated 1,601 isolated evaluations across 81 series and ten
+  Brasília calendar days. It correctly produced no score yet because it requires 12 distinct
+  daily medians, not correlated intraday samples.

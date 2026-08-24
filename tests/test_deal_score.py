@@ -137,6 +137,42 @@ def test_recent_drop_and_historical_trend_are_independent_components() -> None:
     assert second[ScoreComponentName.TREND] == 0
 
 
+def test_new_low_with_small_discounts_scores_fifty_six_by_design() -> None:
+    """Mirror a production alert so repeated new lows cannot mask a score regression."""
+
+    statistics = PriceStatistics(
+        sample_size=112,
+        confidence=ConfidenceLevel.HIGH,
+        p10=Decimal("2353"),
+        p50=Decimal("2370"),
+        p90=Decimal("2390"),
+        percentile_rank=Decimal("0"),
+        recorded_low=Decimal("2353"),
+    )
+    result = calculate_deal_score(
+        Decimal("2349"),
+        statistics,
+        recent_drop=_drop("0.3", RecentDropBasis.LAST_ALERT),
+        trend=TrendAnalysis(
+            8,
+            TrendDirection.STABLE,
+            Decimal("0"),
+            Decimal("2370"),
+            Decimal("2370"),
+        ),
+    )
+
+    components = {component.name: component.points for component in result.components}
+    assert result.score == 56
+    assert components == {
+        ScoreComponentName.PERCENTILE: Decimal("40"),
+        ScoreComponentName.MEDIAN_DISCOUNT: Decimal("0.89"),
+        ScoreComponentName.RECORDED_LOW_PROXIMITY: Decimal("15"),
+        ScoreComponentName.RECENT_DROP: Decimal("0.30"),
+        ScoreComponentName.TREND: Decimal("0"),
+    }
+
+
 @pytest.mark.parametrize(
     ("score_rank", "expected"),
     [

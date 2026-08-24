@@ -102,9 +102,11 @@ class FakeTelegram:
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
         self.messages: list[str] = []
+        self.parse_modes: list[str | None] = []
 
-    def send_message(self, text: str) -> TelegramDelivery:
+    def send_message(self, text: str, *, parse_mode: str | None = None) -> TelegramDelivery:
         self.messages.append(text)
+        self.parse_modes.append(parse_mode)
         if self.fail:
             raise TelegramError("sanitized")
         return TelegramDelivery("message-123")
@@ -153,6 +155,7 @@ def test_send_decision_is_delivered_and_marked_sent() -> None:
     assert result.alert.decision is AlertDecision.SEND
     assert result.delivered is True
     assert telegram.messages == ["formatted alert"]
+    assert telegram.parse_modes == ["HTML"]
     assert repository.sent[0]["telegram_message_id"] == "message-123"
     assert repository.failed == []
 

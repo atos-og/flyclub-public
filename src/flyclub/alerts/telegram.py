@@ -54,16 +54,17 @@ class TelegramClient:
     def from_env(cls) -> TelegramClient:
         return cls(*telegram_credentials_from_env())
 
-    def send_message(self, text: str) -> TelegramDelivery:
+    def send_message(self, text: str, *, parse_mode: str | None = None) -> TelegramDelivery:
         if not 1 <= len(text) <= 4096:
             raise ValueError("Telegram text must contain between 1 and 4096 characters")
-        payload = json.dumps(
-            {
-                "chat_id": self._chat_id,
-                "text": text,
-                "link_preview_options": {"is_disabled": True},
-            }
-        ).encode("utf-8")
+        payload_data = {
+            "chat_id": self._chat_id,
+            "text": text,
+            "link_preview_options": {"is_disabled": True},
+        }
+        if parse_mode is not None:
+            payload_data["parse_mode"] = parse_mode
+        payload = json.dumps(payload_data).encode("utf-8")
         request = Request(
             f"https://api.telegram.org/bot{self._bot_token}/sendMessage",
             data=payload,

@@ -1,0 +1,186 @@
+name: Compare fare flexibility
+
+run-name: Compare fare flexibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      currency:
+        description: Three-letter currency code
+        required: true
+        default: BRL
+        type: string
+      option_a_label:
+        description: Short name for option A
+        required: true
+        default: Option A
+        type: string
+      option_a_price:
+        description: Total quoted price for option A, using a dot for decimals
+        required: true
+        type: string
+      option_a_cancellation:
+        description: Cancellation rule for option A
+        required: true
+        type: choice
+        options: [FULL_REFUND, PARTIAL_REFUND, NON_REFUNDABLE]
+      option_a_cancellation_penalty:
+        description: Fixed cancellation penalty for A; use 0 for full/non-refundable
+        required: true
+        default: "0"
+        type: string
+      option_a_change:
+        description: Change rule for option A
+        required: true
+        type: choice
+        options: [FREE, WITH_FEE, NOT_ALLOWED]
+      option_a_change_penalty:
+        description: Fixed change penalty for A; use 0 for free/not allowed
+        required: true
+        default: "0"
+        type: string
+      option_a_fare_difference:
+        description: Does a future fare difference also apply to changes in A?
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      option_a_source_url:
+        description: Exact HTTP(S) page where rules for A were verified
+        required: true
+        type: string
+      option_a_verified_on:
+        description: Date rules for A were checked, in YYYY-MM-DD format
+        required: true
+        type: string
+      option_b_label:
+        description: Short name for option B
+        required: true
+        default: Option B
+        type: string
+      option_b_price:
+        description: Total quoted price for option B, using a dot for decimals
+        required: true
+        type: string
+      option_b_cancellation:
+        description: Cancellation rule for option B
+        required: true
+        type: choice
+        options: [FULL_REFUND, PARTIAL_REFUND, NON_REFUNDABLE]
+      option_b_cancellation_penalty:
+        description: Fixed cancellation penalty for B; use 0 for full/non-refundable
+        required: true
+        default: "0"
+        type: string
+      option_b_change:
+        description: Change rule for option B
+        required: true
+        type: choice
+        options: [FREE, WITH_FEE, NOT_ALLOWED]
+      option_b_change_penalty:
+        description: Fixed change penalty for B; use 0 for free/not allowed
+        required: true
+        default: "0"
+        type: string
+      option_b_fare_difference:
+        description: Does a future fare difference also apply to changes in B?
+        required: true
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      option_b_source_url:
+        description: Exact HTTP(S) page where rules for B were verified
+        required: true
+        type: string
+      option_b_verified_on:
+        description: Date rules for B were checked, in YYYY-MM-DD format
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flyclub-manual-fare-risk-comparison
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Fly Club
+        run: python -m pip install .
+
+      - name: Validate Telegram secrets
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for name in TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Secret ${name} is not configured"
+              missing=1
+            fi
+          done
+          exit "${missing}"
+
+      - name: Compare verified rules and notify without persistence
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          INPUT_CURRENCY: ${{ inputs.currency }}
+          A_LABEL: ${{ inputs.option_a_label }}
+          A_PRICE: ${{ inputs.option_a_price }}
+          A_CANCELLATION: ${{ inputs.option_a_cancellation }}
+          A_CANCELLATION_PENALTY: ${{ inputs.option_a_cancellation_penalty }}
+          A_CHANGE: ${{ inputs.option_a_change }}
+          A_CHANGE_PENALTY: ${{ inputs.option_a_change_penalty }}
+          A_FARE_DIFFERENCE: ${{ inputs.option_a_fare_difference }}
+          A_SOURCE_URL: ${{ inputs.option_a_source_url }}
+          A_VERIFIED_ON: ${{ inputs.option_a_verified_on }}
+          B_LABEL: ${{ inputs.option_b_label }}
+          B_PRICE: ${{ inputs.option_b_price }}
+          B_CANCELLATION: ${{ inputs.option_b_cancellation }}
+          B_CANCELLATION_PENALTY: ${{ inputs.option_b_cancellation_penalty }}
+          B_CHANGE: ${{ inputs.option_b_change }}
+          B_CHANGE_PENALTY: ${{ inputs.option_b_change_penalty }}
+          B_FARE_DIFFERENCE: ${{ inputs.option_b_fare_difference }}
+          B_SOURCE_URL: ${{ inputs.option_b_source_url }}
+          B_VERIFIED_ON: ${{ inputs.option_b_verified_on }}
+        run: >-
+          flyclub-fare-risk
+          --currency "${INPUT_CURRENCY}"
+          --option-a-label "${A_LABEL}"
+          --option-a-price "${A_PRICE}"
+          --option-a-cancellation "${A_CANCELLATION}"
+          --option-a-cancellation-penalty "${A_CANCELLATION_PENALTY}"
+          --option-a-change "${A_CHANGE}"
+          --option-a-change-penalty "${A_CHANGE_PENALTY}"
+          --option-a-fare-difference-applies "${A_FARE_DIFFERENCE}"
+          --option-a-source-url "${A_SOURCE_URL}"
+          --option-a-verified-on "${A_VERIFIED_ON}"
+          --option-b-label "${B_LABEL}"
+          --option-b-price "${B_PRICE}"
+          --option-b-cancellation "${B_CANCELLATION}"
+          --option-b-cancellation-penalty "${B_CANCELLATION_PENALTY}"
+          --option-b-change "${B_CHANGE}"
+          --option-b-change-penalty "${B_CHANGE_PENALTY}"
+          --option-b-fare-difference-applies "${B_FARE_DIFFERENCE}"
+          --option-b-source-url "${B_SOURCE_URL}"
+          --option-b-verified-on "${B_VERIFIED_ON}"

@@ -49,6 +49,22 @@ def test_telegram_client_posts_current_bot_api_shape() -> None:
     assert delivery.message_id == "123"
 
 
+def test_telegram_client_supports_html_without_enabling_it_by_default() -> None:
+    captured: dict[str, Any] = {}
+
+    def opener(request: Any, *, timeout: int) -> FakeResponse:
+        captured["request"] = request
+        return FakeResponse({"ok": True, "result": {"message_id": 124}})
+
+    TelegramClient("test-token", "test-chat", opener=opener).send_message(
+        '🔗 <a href="https://example.com">Ver oferta</a>',
+        parse_mode="HTML",
+    )
+
+    payload = json.loads(captured["request"].data.decode("utf-8"))
+    assert payload["parse_mode"] == "HTML"
+
+
 def test_telegram_errors_never_echo_token_or_private_response() -> None:
     token = "super-secret-token"
     private_response = "private-api-description"
