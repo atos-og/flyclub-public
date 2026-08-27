@@ -40,6 +40,7 @@ flyclub-daily-summary = "flyclub.daily_summary:cli"
 flyclub-discovery = "flyclub.discovery:cli"
 flyclub-fare-risk = "flyclub.fare_risk:cli"
 flyclub-flexible-dates = "flyclub.flexible_dates:cli"
+flyclub-flexible-market = "flyclub.flexible_market:cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/flyclub"]

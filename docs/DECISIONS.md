@@ -342,3 +342,26 @@ the same visibility boundary as the portfolio source.
 Trade-offs: Two repositories require a controlled release/sync step, duplicated deployment
 configuration, credential rotation during migration, and an explicit production validation for
 each promoted public revision.
+
+## DEC-021 — Isolated rolling flexible-market radar
+
+Status: Accepted
+
+Context: The fixed-date and nearby-date monitors cannot discover an exceptional fixed-duration
+trip whose departure date is not known in advance. Expanding every possible date into the main
+90-minute monitor would materially increase correlated requests and could weaken its reliability.
+
+Decision: Add a separate rolling-market scanner. For each configured airport market, scan one
+bounded provider calendar sequentially, split candidates into independently scored calendar
+periods, and exact-search only the two lowest calendar candidates per period. Persist the confirmed
+best option in dedicated tables and evaluate it with the existing deterministic, prior-only Deal
+Score semantics. Require at least 12 prior observations, apply the configured period threshold,
+and use an independent 24-hour cooldown. Run the private workflow twice daily initially; changing
+that cadence requires a measured request/runtime/reliability review and explicit approval.
+
+Reason: This adds date discovery while containing provider traffic and keeping the proven
+fixed-date monitor, histories, alerts, schedule, and provider-health state unchanged.
+
+Trade-offs: Calendar fares are discovery hints and require exact verification. Two daily scans
+detect opportunities less quickly than the main monitor, the first alerts require a cold-start
+history, and a wide rolling window still uses several sequential calendar requests per market.

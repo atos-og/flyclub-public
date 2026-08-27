@@ -196,6 +196,25 @@ configured BH and São Paulo markets, uses a score threshold of 60 for selected 
 destinations and 90 for Europe, and prefixes Telegram messages with `🔎 DESCOBERTA`. Discovery
 history never mixes with the main trip, even when an airport is present in both lists.
 
+The independent **Scan flexible travel markets** workflow looks for a fixed-duration trip anywhere
+inside a rolling date window. It first reads the provider's calendar in bounded sequential chunks,
+then verifies only the strongest calendar candidates with an exact round-trip search before storing
+or alerting. Each calendar period has its own prior-only history and minimum Deal Score, so an
+excellent near-term opportunity cannot be hidden by a cheaper fare from a later year. This job runs
+twice daily by default, has its own concurrency group, tables, alert cooldown, configuration Secret,
+and Telegram heading, and does not change the fixed-date monitor or its alerts.
+
+Copy `config/flexible-markets.example.yaml` to the ignored
+`config/flexible-markets.yaml`, customize it privately, and validate a live aggregate-only dry run:
+
+```bash
+flyclub-flexible-market --config config/flexible-markets.yaml --dry-run
+```
+
+For private deployment, set `FLYCLUB_FLEXIBLE_MARKETS_YAML` to the complete private YAML. Never
+commit the real markets or run this production workflow in the public source repository; keep the
+active schedule and personal configuration in the private deployment repository.
+
 ## PostgreSQL migrations
 
 Fly Club reads its PostgreSQL connection string only from `DATABASE_URL`. After configuring an
@@ -224,7 +243,8 @@ Fly Club loads configuration in this order:
 3. The path in `FLYCLUB_CONFIG_PATH`.
 4. The ignored local file `config/routes.yaml`.
 
-Only `config/routes.example.yaml` is versioned.
+Only the synthetic `config/routes.example.yaml` and `config/flexible-markets.example.yaml` files
+are versioned.
 
 ## Tests
 

@@ -1,0 +1,67 @@
+name: Scan flexible travel markets
+
+on:
+  schedule:
+    # 08:35 and 20:35 America/Sao_Paulo, away from the main 90-minute monitor.
+    - cron: "35 11,23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flyclub-flexible-market
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ vars.FLYCLUB_SOURCE_REPOSITORY }}
+          ref: ${{ vars.FLYCLUB_SOURCE_REF }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Fly Club
+        run: python -m pip install .
+
+      - name: Validate required secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_FLEXIBLE_MARKETS_YAML: ${{ secrets.FLYCLUB_FLEXIBLE_MARKETS_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for name in DATABASE_URL FLYCLUB_FLEXIBLE_MARKETS_YAML TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Required GitHub Secret ${name} is not configured"
+              missing=1
+            fi
+          done
+          exit "${missing}"
+
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: flyclub-db-migrate
+
+      - name: Scan rolling flexible markets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLYCLUB_FLEXIBLE_MARKETS_YAML: ${{ secrets.FLYCLUB_FLEXIBLE_MARKETS_YAML }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: flyclub-flexible-market

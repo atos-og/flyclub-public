@@ -24,6 +24,8 @@ venv/
 # Personal Fly Club configuration
 config/routes.yaml
 config/routes.local.yaml
+config/flexible-markets.yaml
+config/flexible-markets.local.yaml
 
 # Runtime output
 logs/
