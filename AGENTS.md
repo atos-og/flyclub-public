@@ -113,6 +113,12 @@ Run every configured route sequentially without persistence or route details in 
 flyclub --monitor --dry-run
 ```
 
+Validate an ignored rolling-market configuration with real provider requests but no persistence:
+
+```bash
+flyclub-flexible-market --config config/flexible-markets.yaml --dry-run
+```
+
 Run the persisted monitor after migrations and secure `DATABASE_URL` configuration:
 
 ```bash

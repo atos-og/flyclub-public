@@ -1,0 +1,26 @@
+markets:
+  - id: sample_market
+    label: Example market
+    origin_airports: [JFK]
+    destination_airports: [LHR, LGW]
+    trip_duration_days: 10
+    passengers: 1
+    cabin: ECONOMY
+    currency: USD
+    max_stops: ANY
+    minimum_days_ahead: 14
+    maximum_days_ahead: 305
+    score_threshold_2026: 80
+    score_threshold_future: 75
+
+retry_attempts: 3
+retry_base_delay_seconds: 2
+calendar_chunk_days: 61
+verification_candidates_per_period: 2
+verification_results: 5
+min_score_samples: 12
+low_confidence_max_samples: 30
+moderate_confidence_max_samples: 100
+cooldown_hours: 24
+resend_min_drop_amount: 100
+resend_min_drop_percent: 5

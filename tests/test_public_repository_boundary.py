@@ -29,7 +29,7 @@ def test_secret_scan_download_is_versioned_checksummed_and_history_complete() ->
 def test_private_deployment_workflows_are_inert_pinned_source_templates() -> None:
     templates = tuple(sorted(DEPLOYMENT_TEMPLATES.glob("*.example.yml")))
 
-    assert len(templates) == 7
+    assert len(templates) == 8
     for template in templates:
         text = template.read_text(encoding="utf-8")
         assert yaml.safe_load(text) is not None

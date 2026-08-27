@@ -24,11 +24,15 @@ V1 feature-complete; public-release candidate under security and clean-room vali
   and public/private deployment guidance.
 - Optional private-workflow links supplied only at runtime, with no owner's operational URL
   hardcoded into the package.
+- Rolling fixed-duration market discovery uses bounded calendar chunks, exact candidate
+  verification, isolated PostgreSQL history, deterministic prior-only scoring, and a compact
+  Telegram policy without changing the fixed-date monitor.
 
 ## Public repository boundary
 
 - Active public automation is limited to CI and dependency maintenance.
-- Deployment workflows are inert `.example.yml` templates under `examples/github-actions`.
+- Deployment workflows, including rolling-market scanning, are inert `.example.yml` templates
+  under `examples/github-actions`.
 - Real schedules, manual trip inputs, logs, configuration, and credentials belong in a separate
   private deployment repository.
 - Only synthetic route examples and empty environment-variable names are versioned.
@@ -37,7 +41,8 @@ V1 feature-complete; public-release candidate under security and clean-room vali
 
 Date: 2026-08-24
 
-- `pytest --cov=flyclub --cov-report=term-missing`: 219 passed with at least 90% coverage.
+- `pytest --cov=flyclub --cov-report=term`: 263 passed with 89% total coverage after adding the
+  rolling-market boundary, provider, storage, policy, and failure-path regressions.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `python -m pip check`: passed.

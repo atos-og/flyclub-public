@@ -34,6 +34,11 @@ routes YAML or FLYCLUB_ROUTES_YAML
        Alert Coordinator → Telegram
 
  persisted fixed-date prices → Daily Summary → daily_summary_history → Telegram
+
+private rolling-market YAML → Flexible Market Scanner → provider calendar chunks
+                           → exact verification of top candidates
+                           → flexible_market_checks → prior-only Deal Score
+                           → isolated flexible alert history → Telegram
 ```
 
 The CLI validates configuration, reports counts and a non-secret fingerprint, and can show route
@@ -104,6 +109,15 @@ database writes.
 - `flyclub.daily_summary`: reads only already-persisted fixed-date prices, formats one compact local
   day summary, claims an idempotent delivery date, and sends it through Telegram without entering
   the alert engine or calling a flight provider.
+- `flyclub.flexible_market_config` and `flyclub.flexible_market_models`: validate a separate private
+  rolling-market configuration and expose provider-neutral calendar definitions and fares.
+- `flyclub.providers.google_flights_flexible`: performs bounded sequential calendar chunks and exact
+  verification, converting provider money to `Decimal` at the adapter boundary.
+- `flyclub.flexible_market`: partitions the rolling window into independently scored periods,
+  verifies only the strongest candidates, and orchestrates isolated persistence and alerts.
+- `flyclub.storage.flexible_market` and `flyclub.flexible_market_alerts`: maintain prior-only market
+  histories, cooldown-safe decisions, and compact `GARIMPO FLEXÍVEL` Telegram delivery without
+  reading or changing the main alert history.
 
 ## Component boundaries
 
@@ -162,6 +176,9 @@ The initial PostgreSQL migration implements these principal entities:
 - `deal_score_shadow`: versioned, idempotent v2 evaluations kept separate from alert decisions.
 - `provider_health`: last success, consecutive problem runs, current incident, and recovery state.
 - `daily_summary_history`: one idempotent Telegram delivery state per Brasília calendar date.
+- `flexible_market_checks`: one confirmed best rolling-market observation per market/period/run,
+  including unsuccessful outcomes and provider request counts.
+- `flexible_market_alert_history`: isolated flexible-market decisions and Telegram delivery state.
 
 The repository records one best valid route price per `route_check`, not every returned itinerary,
 while retaining all normalized options in `price_snapshots`. Its history query requires the current
