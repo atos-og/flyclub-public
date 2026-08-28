@@ -69,6 +69,9 @@ Date: 2026-08-24
   that rejects tracked environment files, private/local configurations, credential-like files, or
   any enabled workflow outside the public CI/secret-scan allowlist. Pull requests expose the same
   safety checklist, and common private-key/credential filenames are ignored locally.
+- The public README now presents the personal problem that motivated Fly Club in a concise
+  third-person introduction, followed by a portfolio-oriented explanation of its intelligence,
+  architecture, engineering decisions, security boundary, setup, limitations, and V1 path.
 
 ## Remaining release gates
 
