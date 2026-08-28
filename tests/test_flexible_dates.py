@@ -2,7 +2,10 @@ from pathlib import Path
 
 import pytest
 
+from flyclub.alerts.telegram import TelegramError
+from flyclub.config import ConfigError
 from flyclub.flexible_dates import cli
+from flyclub.storage.postgres import StorageError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = PROJECT_ROOT / "examples" / "github-actions" / "flexible-dates.example.yml"
@@ -49,3 +52,43 @@ def test_flexible_cli_uses_dedicated_routes_without_provider_health(
 def test_flexible_cli_rejects_zero_offset() -> None:
     with pytest.raises(SystemExit):
         cli(["--dry-run", "--offsets=-1,0,1"])
+
+
+def test_flexible_cli_rejects_non_integer_offset() -> None:
+    with pytest.raises(SystemExit):
+        cli(["--dry-run", "--offsets=-1,tomorrow,1"])
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (ConfigError("invalid example"), "Configuration error"),
+        (StorageError("unavailable"), "Storage error"),
+        (TelegramError("unavailable"), "Notification error"),
+    ],
+)
+def test_flexible_cli_reports_sanitized_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    error: Exception,
+    expected: str,
+) -> None:
+    monkeypatch.setattr("flyclub.flexible_dates.load_dotenv", lambda *, override: None)
+    if isinstance(error, ConfigError):
+        monkeypatch.setattr(
+            "flyclub.flexible_dates.load_config",
+            lambda _path: (_ for _ in ()).throw(error),
+        )
+    else:
+        monkeypatch.setattr("flyclub.flexible_dates.load_config", lambda _path: object())
+        monkeypatch.setattr(
+            "flyclub.flexible_dates.plan_flexible_date_routes",
+            lambda _config, *, offsets: ("route", offsets),
+        )
+        monkeypatch.setattr(
+            "flyclub.flexible_dates._run_all_routes",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(error),
+        )
+
+    assert cli([]) == 1
+    assert expected in capsys.readouterr().err

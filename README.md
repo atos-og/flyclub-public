@@ -77,6 +77,16 @@ Historical confidence is shown separately:
 Recent drop and trend are separate signals. Recent drop is a point-in-time comparison, while trend
 describes behavior across several historical observations.
 
+## What an alert looks like
+
+Alerts are intentionally compact: they show the total round-trip fare, why it is unusual, how much
+history supports the comparison, and one clean link to inspect the offer.
+
+![Synthetic example of a Fly Club opportunity alert](docs/assets/synthetic-alert.svg)
+
+The card above is fully synthetic. Its airports, dates, prices, score, and observation count do not
+come from the private deployment.
+
 ## Monitoring flows
 
 ### Fixed-date monitor
@@ -107,22 +117,19 @@ does not compete with opportunity alerts.
 
 ## How it works
 
-```text
-private configuration
-        ↓
-route and market planning
-        ↓
-provider adapter (fli / Google Flights)
-        ↓
-provider-neutral normalized results
-        ↓
-PostgreSQL history on Supabase
-        ↓
-statistics + trend + confidence + Deal Score
-        ↓
-alert policy + cooldown + deduplication
-        ↓
-chat notification
+```mermaid
+flowchart TD
+    A[Private configuration] --> B[Route and market planning]
+    B --> C[Provider adapter]
+    C --> D[Provider-neutral results]
+    D --> E[(PostgreSQL history)]
+    E --> F[Statistics, trend and confidence]
+    F --> G[Deterministic Deal Score]
+    G --> H[Alert policy, cooldown and deduplication]
+    H --> I[Chat notification]
+
+    J[Health monitoring] -. observes .-> C
+    J -. observes .-> H
 ```
 
 The provider integration is isolated behind Fly Club models. Provider-specific objects never enter
