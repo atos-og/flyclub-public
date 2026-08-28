@@ -1,5 +1,9 @@
 # Fly Club
 
+[![CI](https://github.com/atos-og/flyclub-public/actions/workflows/ci.yml/badge.svg)](https://github.com/atos-og/flyclub-public/actions/workflows/ci.yml)
+[![Secret scan](https://github.com/atos-og/flyclub-public/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/atos-og/flyclub-public/actions/workflows/secret-scan.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Fly Club is a personal radar for exceptional flight opportunities. It is designed to collect
 flight prices periodically, build a trustworthy history, classify genuinely unusual prices, and
 send low-noise Telegram alerts.
@@ -8,6 +12,9 @@ Fly Club is MIT-licensed open-source software. This repository contains only sou
 synthetic examples, public CI, and inert deployment templates. Personal production operation
 belongs in a separate private repository; see
 [the publication and deployment model](docs/PUBLICATION.md).
+
+> **Project status:** public preview under active development. The source and security boundary are
+> public now; the V1 release remains gated on the documented statistical and production review.
 
 The project currently validates route configuration, searches Google Flights, persists every
 result in PostgreSQL, evaluates successful prices against prior-only history with deterministic
