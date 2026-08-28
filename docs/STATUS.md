@@ -65,6 +65,10 @@ Date: 2026-08-24
 - Secret scanning, push protection, vulnerability alerts, automated security fixes, and private
   vulnerability reporting are enabled. `main` requires strict `test` and `gitleaks` checks, pull
   requests, linear history, resolved conversations, and blocks force-pushes and deletion.
+- Gitleaks runs on every branch push and pull request. CI also runs a repository-boundary checker
+  that rejects tracked environment files, private/local configurations, credential-like files, or
+  any enabled workflow outside the public CI/secret-scan allowlist. Pull requests expose the same
+  safety checklist, and common private-key/credential filenames are ignored locally.
 
 ## Remaining release gates
 

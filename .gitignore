@@ -19,13 +19,28 @@ venv/
 .env
 .env.*
 !.env.example
+.envrc
+.direnv/
 .secrets/
+*.secret
+*.secrets
+
+# Credential and private-key material
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+credentials.*.json
+service-account*.json
 
 # Personal Fly Club configuration
 config/routes.yaml
 config/routes.local.yaml
 config/flexible-markets.yaml
 config/flexible-markets.local.yaml
+config/**/*.local.yaml
+config/**/*.local.yml
 
 # Runtime output
 logs/
