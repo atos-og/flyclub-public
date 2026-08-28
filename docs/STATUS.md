@@ -2,7 +2,7 @@
 
 ## Current phase
 
-V1 feature-complete; sanitized public preview ready, with the formal V1 release review pending.
+V1 feature-complete; sanitized public preview live, with the formal V1 release review pending.
 
 ## Implemented
 
@@ -56,9 +56,15 @@ Date: 2026-08-24
 - A fresh authenticated clone installed every runtime/development dependency into a new virtual
   environment, validated the synthetic configuration, and repeated all 219 tests and quality
   checks successfully.
-- The private candidate recognizes the MIT license, permits only squash merges, deletes merged
+- The public preview recognizes the MIT license, permits only squash merges, deletes merged
   branches, gives workflows read-only default permissions, blocks workflow PR approvals, restricts
   Actions to SHA-pinned `actions/*`, and has dependency alerts and automated fixes enabled.
+- Public visibility was enabled on 2026-08-28 after the latest CI and complete-history Gitleaks runs
+  passed. The repository had no Actions Secrets, variables, artifacts, production workflows, or
+  personal configuration.
+- Secret scanning, push protection, vulnerability alerts, automated security fixes, and private
+  vulnerability reporting are enabled. `main` requires strict `test` and `gitleaks` checks, pull
+  requests, linear history, resolved conversations, and blocks force-pushes and deletion.
 
 ## Remaining release gates
 
@@ -67,6 +73,4 @@ Date: 2026-08-24
 - Complete and document the 30-day `daily-median-v2` review no earlier than 2026-09-14.
 - Create and validate the private deployment against the exact public candidate revision.
 - Rotate every production credential and private endpoint after the repository split.
-- Repeat the independent secret/history scan immediately before visibility changes.
-- Enable branch protection and private vulnerability reporting when public visibility makes those
-  features available, then complete the manual go/no-go checklist in `docs/PUBLICATION.md`.
+- Repeat the independent secret/history scan before the formal V1 release.
