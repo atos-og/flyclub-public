@@ -39,10 +39,10 @@ V1 feature-complete; sanitized public preview live, with the formal V1 release r
 
 ## Validation
 
-Date: 2026-08-24
+Date: 2026-08-28
 
-- `pytest --cov=flyclub --cov-report=term`: 263 passed with 89% total coverage after adding the
-  rolling-market boundary, provider, storage, policy, and failure-path regressions.
+- `pytest --cov=flyclub --cov-report=term --cov-fail-under=90`: 276 passed with 90% total coverage;
+  CI now prevents coverage from falling below that threshold.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
 - `python -m pip check`: passed.
@@ -72,6 +72,8 @@ Date: 2026-08-24
 - The public README now presents the personal problem that motivated Fly Club in a concise
   third-person introduction, followed by a portfolio-oriented explanation of its intelligence,
   architecture, engineering decisions, security boundary, setup, limitations, and V1 path.
+- The public README includes a fully synthetic alert preview and a Mermaid architecture diagram;
+  neither visual contains production routes, dates, prices, identifiers, logs, or credentials.
 
 ## Remaining release gates
 

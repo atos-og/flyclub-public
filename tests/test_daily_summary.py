@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -83,6 +84,55 @@ def test_daily_summary_is_compact_informational_and_grouped() -> None:
     assert "São Paulo\n• Santiago: sem preço encontrado hoje" in message
     assert "alertas de oportunidade continuam usando critérios próprios" in message
     assert "OPORTUNIDADE EXCEPCIONAL" not in message
+
+
+def test_daily_summary_formats_non_brl_increase_and_plural_passengers() -> None:
+    route = replace(
+        _routes()[0],
+        currency="USD",
+        passengers=2,
+    )
+    snapshot = DailyPriceSnapshot(
+        route.key,
+        Decimal("1500"),
+        Decimal("1200"),
+        datetime(2027, 3, 11, 10, tzinfo=UTC),
+    )
+
+    message = format_daily_summary_message(
+        routes=(route,),
+        snapshots=(snapshot,),
+        summary_date=date(2027, 3, 11),
+    )
+
+    assert "2 passageiros" in message
+    assert "USD 1500.00 · ↑ USD 300.00 (25,0%)" in message
+
+
+def test_daily_summary_omits_change_without_previous_price() -> None:
+    route = _routes()[0]
+    snapshot = DailyPriceSnapshot(route.key, Decimal("1900"), None, None)
+
+    message = format_daily_summary_message(
+        routes=(route,),
+        snapshots=(snapshot,),
+        summary_date=date(2027, 3, 11),
+    )
+
+    assert "Santiago: R$ 1.900,00\n" in message
+
+
+def test_daily_summary_rejects_empty_routes_and_oversized_message() -> None:
+    with pytest.raises(ValueError, match="at least one route"):
+        format_daily_summary_message(routes=(), snapshots=(), summary_date=date(2027, 3, 11))
+
+    oversized = replace(_routes()[0], destination_name="X" * 4096)
+    with pytest.raises(ValueError, match="message limit"):
+        format_daily_summary_message(
+            routes=(oversized,),
+            snapshots=(),
+            summary_date=date(2027, 3, 11),
+        )
 
 
 class FakeRepository:

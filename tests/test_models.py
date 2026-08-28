@@ -36,3 +36,9 @@ def test_origin_comparison_requires_positive_decimal_reference() -> None:
 
     with pytest.raises(TypeError, match="Decimal"):
         OriginPriceComparison("CNF", 3200)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match="must not be empty"):
+        OriginPriceComparison("  ", Decimal("3200"))
+
+    with pytest.raises(ValueError, match="greater than zero"):
+        OriginPriceComparison("CNF", Decimal("0"))

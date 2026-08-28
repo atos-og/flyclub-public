@@ -92,3 +92,11 @@ def test_discovery_routes_are_independent_and_keep_per_destination_thresholds() 
     assert not {route.key for route in main}.intersection(route.key for route in discovery)
     assert {route.minimum_deal_score for route in discovery if route.destination == "SFO"} == {60}
     assert {route.minimum_deal_score for route in discovery if route.destination == "LIS"} == {90}
+
+
+def test_discovery_planner_returns_empty_when_feature_is_not_configured() -> None:
+    config = load_config(EXAMPLE_PATH)
+    raw = deepcopy(config.model_dump(mode="python"))
+    raw["discovery"] = None
+
+    assert plan_discovery_routes(FlyClubConfig.model_validate(raw)) == ()

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="520" viewBox="0 0 760 520" role="img" aria-labelledby="title description">
+  <title id="title">Synthetic Fly Club opportunity alert</title>
+  <desc id="description">A fictional example showing how a flight opportunity is summarized.</desc>
+  <rect width="760" height="520" rx="28" fill="#f4f7fb"/>
+  <rect x="30" y="30" width="700" height="460" rx="22" fill="#ffffff" stroke="#dbe3ef" stroke-width="2"/>
+  <rect x="30" y="30" width="12" height="460" rx="6" fill="#ff6b35"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#172033">
+    <text x="72" y="82" font-size="28" font-weight="700">OPPORTUNITY · 71/100</text>
+    <text x="72" y="126" font-size="19" fill="#5d6b82">Synthetic example — no real itinerary or user data</text>
+    <line x1="72" y1="150" x2="688" y2="150" stroke="#e4e9f1"/>
+    <text x="72" y="194" font-size="25" font-weight="700">AAA → BBB</text>
+    <text x="72" y="228" font-size="20">12 Apr to 22 Apr · 1 passenger · Economy</text>
+    <text x="72" y="286" font-size="34" font-weight="700" fill="#0b7a53">R$ 1,480 total</text>
+    <text x="72" y="324" font-size="19">↓ R$ 320 (17.8%) below the typical R$ 1,800</text>
+    <text x="72" y="362" font-size="19">Among the lowest 8% · 64 prior observations</text>
+    <text x="72" y="394" font-size="19">Confidence: moderate · Recorded low: R$ 1,420</text>
+    <rect x="72" y="426" width="190" height="44" rx="12" fill="#1769e0"/>
+    <text x="167" y="455" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">View offer</text>
+  </g>
+</svg>
