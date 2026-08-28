@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from pathlib import Path
 
 import yaml
@@ -24,6 +26,7 @@ def test_secret_scan_download_is_versioned_checksummed_and_history_complete() ->
     assert "sha256sum --check --strict" in workflow
     assert "fetch-depth: 0" in workflow
     assert "--redact --config .gitleaks.toml" in workflow
+    assert "push:\n    branches:" not in workflow
 
 
 def test_private_deployment_workflows_are_inert_pinned_source_templates() -> None:
@@ -53,3 +56,15 @@ def test_package_does_not_hardcode_the_owners_private_workflow_url() -> None:
     )
 
     assert "atos-og/flyclub/actions/workflows" not in source
+
+
+def test_public_boundary_script_passes_for_every_tracked_file() -> None:
+    result = subprocess.run(
+        [sys.executable, "scripts/check_public_boundary.py"],
+        cwd=PROJECT_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr

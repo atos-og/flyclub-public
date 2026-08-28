@@ -40,5 +40,8 @@ jobs:
       - name: Check formatting
         run: ruff format --check .
 
+      - name: Check public repository boundary
+        run: python scripts/check_public_boundary.py
+
       - name: Run tests
         run: pytest --cov=flyclub --cov-report=term-missing

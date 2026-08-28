@@ -20,9 +20,9 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/atos-og/flyclub"
-Issues = "https://github.com/atos-og/flyclub/issues"
-Security = "https://github.com/atos-og/flyclub/security/policy"
+Repository = "https://github.com/atos-og/flyclub-public"
+Issues = "https://github.com/atos-og/flyclub-public/issues"
+Security = "https://github.com/atos-og/flyclub-public/security/policy"
 
 [project.optional-dependencies]
 dev = [
