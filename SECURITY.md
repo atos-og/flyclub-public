@@ -5,7 +5,7 @@
 Do not open a public issue for a suspected vulnerability, exposed credential, private route, or
 personal travel detail. Use GitHub's private vulnerability reporting for this repository instead:
 
-<https://github.com/atos-og/flyclub/security/advisories/new>
+<https://github.com/atos-og/flyclub-public/security/advisories/new>
 
 Include the affected version or commit, a concise reproduction, the expected impact, and any safe
 mitigation you already identified. Do not include real tokens, connection strings, chat IDs,

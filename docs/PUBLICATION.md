@@ -6,8 +6,9 @@ public.
 
 ## Repository model
 
-- The public `flyclub` repository is the canonical source for application code, tests, synthetic
-  examples, architecture, releases, and public CI.
+- During public preview, `flyclub-public` is the canonical source for application code, tests,
+  synthetic examples, architecture, and public CI. It may be renamed to `flyclub` during the final
+  V1 migration.
 - A separate private deployment repository owns enabled schedules, personal manual runs, private
   Actions logs, and Repository Secrets. It consumes a reviewed public Fly Club release or commit.
 - Neither repository versions credentials or real route configuration.
@@ -15,11 +16,16 @@ public.
 This boundary keeps normal open-source development public while preserving the confidentiality of
 the owner's operational data.
 
-## Release timing
+## Visibility and release timing
 
-The initial public release is gated on the 30-day `daily-median-v2` shadow review, whose earliest
-valid review date is 2026-09-14. If that review causes a scoring or alert-policy change, the new
-behavior must pass CI and run stably in the private deployment before publication. The preferred
+Public visibility and the V1 release are separate milestones. A sanitized source repository may be
+made visible as a **public preview** once its complete reachable history is scanned, production
+workflows and data are absent, public CI passes, and the private operational repository remains
+private. A preview is not a claim that the V1 scoring review is complete.
+
+The V1 release remains gated on the 30-day `daily-median-v2` shadow review, whose earliest valid
+review date is 2026-09-14. If that review causes a scoring or alert-policy change, the new behavior
+must pass CI and run stably in the private deployment before a V1 tag is created. The preferred V1
 release window is 2026-09-21 through 2026-09-30; reaching a calendar date never overrides a failed
 security or reliability gate.
 
@@ -41,9 +47,21 @@ security or reliability gate.
 9. Rename repositories only after both sides pass the go/no-go checklist. Keep any historical
    repository with private operational refs permanently private.
 
-## Go/no-go checklist
+## Public-preview go/no-go checklist
 
-Publication is allowed only when all answers are yes:
+Public visibility is allowed only when all answers are yes:
+
+- Is the candidate built without historical production pull-request refs?
+- Do automated and manual scans find no real secrets or personal itinerary data?
+- Are production workflows, configuration, credentials, logs, and artifacts absent?
+- Do tests, lint, formatting, dependency checks, and the full-history secret scan pass?
+- Are the MIT license, security policy, contribution guide, acknowledgements, README, and preview
+  status current?
+- Does the private production repository remain private and operationally independent?
+
+## V1 release go/no-go checklist
+
+Creating the V1 release/tag is allowed only when all answers are yes:
 
 - Is the 30-day Deal Score v2 review complete and documented?
 - Is the candidate built without historical PR refs or non-main branches?
@@ -55,6 +73,6 @@ Publication is allowed only when all answers are yes:
 - Has a clean-room installation succeeded using only public documentation?
 - Has the private deployment completed a real cycle from the exact public candidate revision?
 
-After publication, normal development continues through public branches and pull requests. A
+After public visibility, normal development continues through public branches and pull requests. A
 secret accidentally committed to a public branch is considered compromised and must be rotated;
 deleting it in a later commit is not remediation.

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-V1 feature-complete; public-release candidate under security and clean-room validation.
+V1 feature-complete; sanitized public preview ready, with the formal V1 release review pending.
 
 ## Implemented
 
@@ -62,6 +62,8 @@ Date: 2026-08-24
 
 ## Remaining release gates
 
+- Keep the source visible as a public preview without creating a V1 tag or enabling any production
+  workflow in this repository.
 - Complete and document the 30-day `daily-median-v2` review no earlier than 2026-09-14.
 - Create and validate the private deployment against the exact public candidate revision.
 - Rotate every production credential and private endpoint after the repository split.
