@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,8 @@ class FlexibleMarket(_StrictModel):
     maximum_days_ahead: int = Field(default=305, ge=2, le=305)
     score_threshold_2026: int = Field(default=80, ge=60, le=100)
     score_threshold_future: int = Field(default=75, ge=60, le=100)
+    travel_window_start: date | None = None
+    travel_window_end: date | None = None
 
     @field_validator("id")
     @classmethod
@@ -90,6 +93,12 @@ class FlexibleMarket(_StrictModel):
     def validate_window(self) -> FlexibleMarket:
         if self.minimum_days_ahead >= self.maximum_days_ahead:
             raise ValueError("minimum_days_ahead must be lower than maximum_days_ahead")
+        if (self.travel_window_start is None) != (self.travel_window_end is None):
+            raise ValueError("travel_window_start and travel_window_end must be provided together")
+        if self.travel_window_start is not None and self.travel_window_end is not None:
+            available_days = (self.travel_window_end - self.travel_window_start).days
+            if available_days < self.trip_duration_days:
+                raise ValueError("travel window must contain at least one complete trip")
         return self
 
 

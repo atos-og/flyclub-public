@@ -13,7 +13,7 @@ from flyclub.flexible_market import (
     run_flexible_market_scan,
 )
 from flyclub.flexible_market_config import FlexibleMarketConfigError, load_flexible_market_text
-from flyclub.flexible_market_models import CalendarFare, CalendarSearchOutcome
+from flyclub.flexible_market_models import CalendarFare, CalendarSearchOutcome, market_definition
 from flyclub.models import FlightLeg, FlightOption, PriceObservation, SearchOutcome, SearchStatus
 from flyclub.storage.postgres import RunStatus
 
@@ -258,6 +258,69 @@ def test_period_planner_uses_only_future_policy_after_2026() -> None:
     assert len(periods) == 1
     assert periods[0].key == "from_2027"
     assert periods[0].minimum_deal_score == 75
+
+
+def test_fixed_window_keeps_complete_seven_day_trip_inside_january() -> None:
+    settings = load_flexible_market_text(
+        """
+markets:
+  - id: sample_month
+    label: Sample month
+    origin_airports: [JFK]
+    destination_airports: [LHR]
+    trip_duration_days: 7
+    passengers: 1
+    cabin: ECONOMY
+    currency: USD
+    max_stops: ANY
+    minimum_days_ahead: 14
+    maximum_days_ahead: 305
+    score_threshold_2026: 80
+    score_threshold_future: 75
+    travel_window_start: 2027-01-01
+    travel_window_end: 2027-01-31
+"""
+    )
+    market = market_definition(settings.markets[0])
+
+    periods = _periods(market, today=date(2026, 9, 2))
+
+    assert len(periods) == 1
+    assert periods[0].start_date == date(2027, 1, 1)
+    assert periods[0].end_date == date(2027, 1, 24)
+    assert periods[0].minimum_deal_score == 75
+    assert periods[0].key == "fixed_20270101_20270124_from_2027"
+    assert periods[0].label == "viagens entre 01/01/2027 e 31/01/2027"
+    assert _periods(market, today=date(2027, 2, 1)) == ()
+
+
+def test_scanner_skips_an_expired_fixed_window_without_provider_requests() -> None:
+    settings = load_flexible_market_text(
+        """
+markets:
+  - id: expired_month
+    label: Expired month
+    origin_airports: [JFK]
+    destination_airports: [LHR]
+    trip_duration_days: 7
+    travel_window_start: 2027-01-01
+    travel_window_end: 2027-01-31
+"""
+    )
+
+    summary = run_flexible_market_scan(
+        settings=settings,
+        provider=FakeProvider(),
+        today=date(2027, 2, 1),
+        current_at=datetime(2027, 2, 1, 12, tzinfo=UTC),
+        run_repository=None,
+        market_repository=None,
+        alert_coordinator=None,
+    )
+
+    assert summary.status is RunStatus.SUCCESS
+    assert summary.planned_series == 0
+    assert summary.calendar_requests == 0
 
 
 def test_verification_preserves_failure_when_no_candidate_can_be_confirmed() -> None:

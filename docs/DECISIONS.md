@@ -365,3 +365,24 @@ fixed-date monitor, histories, alerts, schedule, and provider-health state uncha
 Trade-offs: Calendar fares are discovery hints and require exact verification. Two daily scans
 detect opportunities less quickly than the main monitor, the first alerts require a cold-start
 history, and a wide rolling window still uses several sequential calendar requests per market.
+
+## DEC-022 — Optional fixed complete-trip windows
+
+Status: Accepted
+
+Context: Some opportunity searches are flexible about the exact dates but limited to one calendar
+month. Treating them as a full rolling-year market would add irrelevant requests and could return
+travel outside the intended month.
+
+Decision: Allow a flexible market to define both `travel_window_start` and `travel_window_end`.
+Intersect that interval with the provider's rolling limits and restrict the final departure so the
+fixed-duration return also remains inside the window. Give the bounded period a date-specific key,
+and skip it without provider calls after it expires. Markets without these fields keep their
+existing behavior and historical keys unchanged.
+
+Reason: This supports month-only opportunity hunting with a single small isolated series, while
+preserving comparable history and avoiding requests for unwanted dates.
+
+Trade-offs: The trip duration remains fixed, a market ID must not be reused for different travel
+semantics, and an expired window stops collecting automatically but remains in private
+configuration until removed.

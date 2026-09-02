@@ -24,6 +24,8 @@ class FlexibleMarketDefinition:
     maximum_days_ahead: int
     score_threshold_2026: int
     score_threshold_future: int
+    travel_window_start: date | None = None
+    travel_window_end: date | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,4 +94,6 @@ def market_definition(config: object) -> FlexibleMarketDefinition:
         maximum_days_ahead=config.maximum_days_ahead,
         score_threshold_2026=config.score_threshold_2026,
         score_threshold_future=config.score_threshold_future,
+        travel_window_start=config.travel_window_start,
+        travel_window_end=config.travel_window_end,
     )
