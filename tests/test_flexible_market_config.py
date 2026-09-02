@@ -44,6 +44,35 @@ def test_loads_strict_private_flexible_market_configuration() -> None:
     assert settings.retry_base_delay_seconds == Decimal("2")
 
 
+def test_fixed_travel_window_requires_and_contains_a_complete_trip() -> None:
+    configured = load_flexible_market_text(
+        _yaml().replace(
+            "    score_threshold_future: 75",
+            "    score_threshold_future: 75\n"
+            "    travel_window_start: 2027-01-01\n"
+            "    travel_window_end: 2027-01-31",
+        )
+    )
+
+    assert configured.markets[0].travel_window_start.isoformat() == "2027-01-01"
+    assert configured.markets[0].travel_window_end.isoformat() == "2027-01-31"
+
+    for invalid in (
+        _yaml().replace(
+            "    score_threshold_future: 75",
+            "    score_threshold_future: 75\n    travel_window_start: 2027-01-01",
+        ),
+        _yaml().replace(
+            "    score_threshold_future: 75",
+            "    score_threshold_future: 75\n"
+            "    travel_window_start: 2027-01-31\n"
+            "    travel_window_end: 2027-02-05",
+        ),
+    ):
+        with pytest.raises(FlexibleMarketConfigError):
+            load_flexible_market_text(invalid)
+
+
 def test_private_configuration_errors_do_not_echo_values() -> None:
     private_value = "private-market-name"
 

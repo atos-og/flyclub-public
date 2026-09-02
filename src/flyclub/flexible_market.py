@@ -79,23 +79,48 @@ class FlexibleMarketSummary:
 def _periods(market: FlexibleMarketDefinition, *, today: date) -> tuple[FlexibleMarketPeriod, ...]:
     window_start = today + timedelta(days=market.minimum_days_ahead)
     window_end = today + timedelta(days=market.maximum_days_ahead)
+    fixed_window = market.travel_window_start is not None and market.travel_window_end is not None
+    if fixed_window:
+        window_start = max(window_start, market.travel_window_start)
+        window_end = min(
+            window_end,
+            market.travel_window_end - timedelta(days=market.trip_duration_days),
+        )
+    if window_end < window_start:
+        return ()
+
+    def period_key(policy: str, start: date, end: date) -> str:
+        if not fixed_window:
+            return policy
+        return f"fixed_{start:%Y%m%d}_{end:%Y%m%d}_{policy}"
+
+    def period_label(default: str) -> str:
+        if not fixed_window:
+            return default
+        return (
+            f"viagens entre {market.travel_window_start:%d/%m/%Y} "
+            f"e {market.travel_window_end:%d/%m/%Y}"
+        )
+
     periods: list[FlexibleMarketPeriod] = []
     if window_start <= PERIOD_2026_END:
+        period_end = min(window_end, PERIOD_2026_END)
         periods.append(
             FlexibleMarketPeriod(
-                key="remaining_2026",
-                label="partidas até 31/12/2026",
+                key=period_key("remaining_2026", window_start, period_end),
+                label=period_label("partidas até 31/12/2026"),
                 start_date=window_start,
-                end_date=min(window_end, PERIOD_2026_END),
+                end_date=period_end,
                 minimum_deal_score=market.score_threshold_2026,
             )
         )
     if window_end >= PERIOD_FUTURE_START:
+        period_start = max(window_start, PERIOD_FUTURE_START)
         periods.append(
             FlexibleMarketPeriod(
-                key="from_2027",
-                label="partidas a partir de 01/01/2027",
-                start_date=max(window_start, PERIOD_FUTURE_START),
+                key=period_key("from_2027", period_start, window_end),
+                label=period_label("partidas a partir de 01/01/2027"),
+                start_date=period_start,
                 end_date=window_end,
                 minimum_deal_score=market.score_threshold_future,
             )
@@ -206,7 +231,10 @@ def run_flexible_market_scan(
     if current_at.tzinfo is None:
         raise ValueError("current_at must be timezone-aware")
     markets = tuple(market_definition(config) for config in settings.markets)
-    planned = sum(len(_periods(market, today=today)) for market in markets)
+    active_markets = tuple(
+        (market, periods) for market in markets if (periods := _periods(market, today=today))
+    )
+    planned = sum(len(periods) for _, periods in active_markets)
     run_id = None
     if run_repository is not None:
         run_id = run_repository.start_run(
@@ -224,8 +252,7 @@ def run_flexible_market_scan(
     )
     aborted = False
     try:
-        for market in markets:
-            periods = _periods(market, today=today)
+        for market, periods in active_markets:
             window_start = min(period.start_date for period in periods)
             window_end = max(period.end_date for period in periods)
             calendar = provider.search_calendar(

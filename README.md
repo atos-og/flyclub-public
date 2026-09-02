@@ -101,6 +101,10 @@ This flow looks for a fixed-duration trip anywhere inside a rolling date window.
 provider calendar in bounded chunks and verifies only the strongest candidates with an exact
 round-trip request.
 
+A market can optionally limit the complete trip to a fixed window, such as one calendar month.
+Fly Club restricts the final departure date so the return remains inside that window, and stops
+querying it automatically after the window expires.
+
 It has separate tables, history, thresholds, cooldown, and alert formatting. It currently runs
 twice a day in the private deployment and does not change the performance or alerts of the main
 monitor.

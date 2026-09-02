@@ -39,9 +39,9 @@ V1 feature-complete; sanitized public preview live, with the formal V1 release r
 
 ## Validation
 
-Date: 2026-08-28
+Date: 2026-09-02
 
-- `pytest --cov=flyclub --cov-report=term --cov-fail-under=90`: 276 passed with 90% total coverage;
+- `pytest --cov=flyclub --cov-report=term --cov-fail-under=90`: 279 passed with 90% total coverage;
   CI now prevents coverage from falling below that threshold.
 - `ruff check .`: passed.
 - `ruff format --check .`: passed.
@@ -74,6 +74,9 @@ Date: 2026-08-28
   architecture, engineering decisions, security boundary, setup, limitations, and V1 path.
 - The public README includes a fully synthetic alert preview and a Mermaid architecture diagram;
   neither visual contains production routes, dates, prices, identifiers, logs, or credentials.
+- Flexible markets may constrain the complete trip to a fixed date window. The planner preserves
+  return-date boundaries, isolates history with date-specific keys, and skips expired windows
+  without provider calls; only synthetic examples and tests are public.
 
 ## Remaining release gates
 

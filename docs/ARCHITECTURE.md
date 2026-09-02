@@ -110,10 +110,12 @@ database writes.
   day summary, claims an idempotent delivery date, and sends it through Telegram without entering
   the alert engine or calling a flight provider.
 - `flyclub.flexible_market_config` and `flyclub.flexible_market_models`: validate a separate private
-  rolling-market configuration and expose provider-neutral calendar definitions and fares.
+  rolling-market configuration, including optional fixed complete-trip windows, and expose
+  provider-neutral calendar definitions and fares.
 - `flyclub.providers.google_flights_flexible`: performs bounded sequential calendar chunks and exact
   verification, converting provider money to `Decimal` at the adapter boundary.
-- `flyclub.flexible_market`: partitions the rolling window into independently scored periods,
+- `flyclub.flexible_market`: intersects rolling provider limits with any fixed complete-trip
+  window, skips expired windows, partitions active dates into independently scored periods,
   verifies only the strongest candidates, and orchestrates isolated persistence and alerts.
 - `flyclub.storage.flexible_market` and `flyclub.flexible_market_alerts`: maintain prior-only market
   histories, cooldown-safe decisions, and compact `GARIMPO FLEXÍVEL` Telegram delivery without

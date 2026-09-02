@@ -12,6 +12,9 @@ markets:
     maximum_days_ahead: 305
     score_threshold_2026: 80
     score_threshold_future: 75
+    # Optional fixed complete-trip window:
+    # travel_window_start: 2027-01-01
+    # travel_window_end: 2027-01-31
 
 retry_attempts: 3
 retry_base_delay_seconds: 2
